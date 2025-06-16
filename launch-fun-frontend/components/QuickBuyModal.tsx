@@ -6,6 +6,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { Token } from '@/types'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useWalletModal } from '@solana/wallet-adapter-react-ui'
+import { Connection, Transaction } from '@solana/web3.js'
 
 interface QuickBuyModalProps {
   token: Token | null
@@ -14,7 +15,7 @@ interface QuickBuyModalProps {
 }
 
 export const QuickBuyModal: FC<QuickBuyModalProps> = ({ token, isOpen, onClose }) => {
-  const { publicKey } = useWallet()
+  const { publicKey, signTransaction } = useWallet()
   const { setVisible } = useWalletModal()
   const [amount, setAmount] = useState(50)
   const [slippage, setSlippage] = useState(0.5)
@@ -29,12 +30,94 @@ export const QuickBuyModal: FC<QuickBuyModalProps> = ({ token, isOpen, onClose }
       return
     }
 
+    if (!token) return
+
     setIsLoading(true)
-    // TODO: Implement actual buy logic
-    setTimeout(() => {
-      setIsLoading(false)
+
+    try {
+      const response = await fetch(`/api/tokens/${token.mint}/buy`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          amount,
+          slippage,
+          buyer: publicKey.toBase58()
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create buy transaction')
+      }
+
+      const data = await response.json()
+
+      if (data.transaction && signTransaction) {
+        const rpcEndpoints = [
+          `https://mainnet.helius-rpc.com/?api-key=${process.env.NEXT_PUBLIC_HELIUS_API_KEY}`,
+          'https://api.mainnet-beta.solana.com',
+          'https://rpc.ankr.com/solana'
+        ]
+
+        let connection: Connection | null = null
+
+        for (const endpoint of rpcEndpoints) {
+          try {
+            connection = new Connection(endpoint, 'confirmed')
+            await connection.getLatestBlockhash()
+            break
+          } catch (err) {
+            console.error(`Failed to connect to ${endpoint}:`, err)
+          }
+        }
+
+        if (!connection) {
+          throw new Error('Failed to connect to Solana network.')
+        }
+
+        const transaction = Transaction.from(Buffer.from(data.transaction, 'base64'))
+        const signedTx = await signTransaction(transaction)
+        const signature = await connection.sendRawTransaction(signedTx.serialize(), {
+          skipPreflight: true,
+          preflightCommitment: 'confirmed',
+          maxRetries: 5
+        })
+
+        console.log('Transaction sent! Signature:', signature)
+
+        let confirmed = false
+
+        for (let i = 0; i < 60; i++) {
+          const status = await connection.getSignatureStatus(signature)
+
+          if (
+            status.value?.confirmationStatus === 'confirmed' ||
+            status.value?.confirmationStatus === 'finalized'
+          ) {
+            confirmed = true
+            console.log('Transaction confirmed!')
+            break
+          }
+
+          if (status.value?.err) {
+            throw new Error(`Transaction failed: ${JSON.stringify(status.value.err)}`)
+          }
+
+          await new Promise((res) => setTimeout(res, 1000))
+        }
+
+        if (!confirmed) {
+          console.warn('Transaction confirmation timeout - please check Solscan')
+        }
+      }
+
       onClose()
-    }, 2000)
+    } catch (error) {
+      console.error('Buy error:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   if (!token) return null
