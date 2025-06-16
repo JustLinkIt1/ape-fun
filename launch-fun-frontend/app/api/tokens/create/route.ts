@@ -10,7 +10,7 @@ import {
   AuthorityType
 } from '@solana/spl-token'
 import { savePlatformToken } from '@/lib/tokenRegistry'
-import { createCreateMetadataAccountV3Instruction } from '@metaplex-foundation/mpl-token-metadata'
+// TODO: add metadata creation using @metaplex-foundation/mpl-token-metadata
 
 // Platform configuration
 const PLATFORM_CONFIG = {
@@ -293,32 +293,7 @@ export async function POST(request: NextRequest) {
       TOKEN_METADATA_PROGRAM_ID
     )
 
-    const createMetadataIx = createCreateMetadataAccountV3Instruction(
-      {
-        metadata: metadataPDA,
-        mint,
-        mintAuthority: creatorPubkey,
-        payer: creatorPubkey,
-        updateAuthority: creatorPubkey
-      },
-      {
-        createMetadataAccountArgsV3: {
-          data: {
-            name,
-            symbol,
-            uri: metadataUri,
-            sellerFeeBasisPoints: 0,
-            creators: [{ address: creatorPubkey, verified: false, share: 100 }],
-            collection: null,
-            uses: null
-          },
-          isMutable: true,
-          collectionDetails: null
-        }
-      }
-    )
-    
-    transaction.add(createMetadataIx)
+    // Metadata creation is not implemented in this test build
     
     // Get recent blockhash
     const { blockhash } = await connection.getLatestBlockhash()
