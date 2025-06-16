@@ -1,7 +1,5 @@
 const { Connection, PublicKey } = require('@solana/web3.js');
-
-// Metaplex Token Metadata Program ID
-const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
+const { MPL_TOKEN_METADATA_PROGRAM_ID: TOKEN_METADATA_PROGRAM_ID } = require('@metaplex-foundation/mpl-token-metadata');
 
 // Helper to get metadata PDA
 function getMetadataPDA(mint) {
