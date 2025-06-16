@@ -3,8 +3,9 @@ import { getPlatformToken } from '@/lib/tokenRegistry'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { mint: string } }
+  context: any
 ) {
+  const { params } = context as { params: { mint: string } }
   try {
     const mint = params.mint
     

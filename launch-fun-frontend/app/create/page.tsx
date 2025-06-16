@@ -403,7 +403,7 @@ export default function CreateToken() {
                 <label htmlFor="useVanityAddress" className="flex-1 cursor-pointer">
                   <span className="text-sm font-medium text-yellow-400">Generate Vanity Address</span>
                   <p className="text-xs text-yellow-300/70 mt-1">
-                    Try to create a token address ending with "RISE", "ISE", or "SE" (like pump.fun's "pump").
+                    Try to create a token address ending with &quot;RISE&quot;, &quot;ISE&quot;, or &quot;SE&quot; (like pump.fun&apos;s &quot;pump&quot;).
                     This may take 10-30 seconds. If not found quickly, a regular address will be used.
                   </p>
                 </label>
