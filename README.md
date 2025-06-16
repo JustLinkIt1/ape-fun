@@ -32,6 +32,7 @@ ape-fun/
 ├── base.py                    # Base Solana interaction utilities
 ├── memecoin.py               # Core memecoin functionality
 ├── raydium_integration.py    # Raydium AMM integration
+├── simple_mainnet_launchpad.py              # Minimal mainnet launch script
 ├── solana_memecoin_launchpad_production.py  # Production launchpad implementation
 ├── launch-fun-frontend/      # Next.js frontend application
 │   ├── app/                  # App router pages
@@ -84,6 +85,19 @@ npm run dev
 ```
 
 2. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+## Simple Mainnet Launcher
+
+The `simple_mainnet_launchpad.py` script provides a minimal example of creating
+an SPL token on Solana mainnet. It uses `solana-py` and the Metaplex token
+metadata instructions. Example usage:
+
+```bash
+python simple_mainnet_launchpad.py
+```
+
+The script will prompt you to fund a temporary keypair before creating the
+token.
 
 ## Contributing
 
