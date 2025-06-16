@@ -260,11 +260,11 @@ export default function CreateToken() {
 
   return (
     <Toast.Provider swipeDirection="right">
-      <main className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900/20 to-gray-900">
+      <main className="min-h-screen bg-gradient-to-br from-black via-yellow-900/20 to-black">
         {/* Animated Background */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-yellow-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-yellow-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
         </div>
 
         <Header />
@@ -276,7 +276,7 @@ export default function CreateToken() {
         >
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold text-white mb-4">
-              Launch Your <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Memecoin</span>
+              Launch Your <span className="bg-gradient-to-r from-yellow-500 to-white bg-clip-text text-transparent">Memecoin</span>
             </h1>
             <p className="text-xl text-gray-400">Create and launch your token on Solana in seconds</p>
           </div>
@@ -299,7 +299,7 @@ export default function CreateToken() {
                   value={formData.name}
                   onChange={handleInputChange}
                   placeholder="Doge Killer"
-                  className="w-full px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                  className="w-full px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 transition-colors"
                   required
                 />
               </div>
@@ -315,7 +315,7 @@ export default function CreateToken() {
                   value={formData.symbol}
                   onChange={handleInputChange}
                   placeholder="DOGEKILL"
-                  className="w-full px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                  className="w-full px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 transition-colors"
                   required
                   maxLength={10}
                 />
@@ -332,7 +332,7 @@ export default function CreateToken() {
                   onChange={handleInputChange}
                   placeholder="The ultimate memecoin that will flip Doge..."
                   rows={4}
-                  className="w-full px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors resize-none"
+                  className="w-full px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 transition-colors resize-none"
                 />
               </div>
 
@@ -385,24 +385,24 @@ export default function CreateToken() {
                   name="totalSupply"
                   value={formData.totalSupply}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                  className="w-full px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 transition-colors"
                   min="1"
                 />
               </div>
 
               {/* Vanity Address Option */}
-              <div className="flex items-center space-x-3 p-4 bg-purple-500/10 border border-purple-500/30 rounded-xl">
+              <div className="flex items-center space-x-3 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
                 <input
                   type="checkbox"
                   id="useVanityAddress"
                   name="useVanityAddress"
                   checked={formData.useVanityAddress}
                   onChange={handleInputChange}
-                  className="w-4 h-4 text-purple-600 bg-gray-900 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
+                  className="w-4 h-4 text-yellow-600 bg-gray-900 border-gray-600 rounded focus:ring-yellow-500 focus:ring-2"
                 />
                 <label htmlFor="useVanityAddress" className="flex-1 cursor-pointer">
-                  <span className="text-sm font-medium text-purple-400">Generate Vanity Address</span>
-                  <p className="text-xs text-purple-300/70 mt-1">
+                  <span className="text-sm font-medium text-yellow-400">Generate Vanity Address</span>
+                  <p className="text-xs text-yellow-300/70 mt-1">
                     Try to create a token address ending with "RISE", "ISE", or "SE" (like pump.fun's "pump").
                     This may take 10-30 seconds. If not found quickly, a regular address will be used.
                   </p>
@@ -431,7 +431,7 @@ export default function CreateToken() {
                 disabled={isCreating || !publicKey}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="w-full py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-purple-500/25 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-4 bg-gradient-to-r from-yellow-600 to-yellow-400 text-black rounded-xl font-bold text-lg shadow-lg hover:shadow-yellow-500/25 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isCreating ? (
                   <span className="flex items-center justify-center">

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { generateTagline } from '@/lib/ai'
 import { Header } from '@/components/Header'
 import { TokenCard } from '@/components/TokenCard'
 import { QuickBuyModal } from '@/components/QuickBuyModal'
@@ -56,6 +57,9 @@ export default function HomePage() {
   const [selectedToken, setSelectedToken] = useState<Token | null>(null)
   const [tokens, setTokens] = useState<Token[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [tagline, setTagline] = useState(
+    'The fastest way to launch and trade memecoins on Solana.'
+  )
 
   useEffect(() => {
     // Load platform tokens
@@ -88,13 +92,17 @@ export default function HomePage() {
     setIsLoading(false)
   }, [])
 
+  useEffect(() => {
+    generateTagline().then(setTagline)
+  }, [])
+
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900/20 to-gray-900">
+    <main className="min-h-screen bg-gradient-to-br from-black via-yellow-900/20 to-black">
       {/* Animated Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-yellow-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-yellow-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-white rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
       </div>
 
       <Header />
@@ -107,12 +115,11 @@ export default function HomePage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <h1 className="text-6xl md:text-8xl font-bold mb-6 bg-gradient-to-r from-yellow-400 via-orange-400 to-pink-400 bg-clip-text text-transparent animate-gradient">
+            <h1 className="text-6xl md:text-8xl font-bold mb-6 bg-gradient-to-r from-yellow-500 via-yellow-400 to-white bg-clip-text text-transparent animate-gradient">
               Ape Fun
             </h1>
             <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto">
-              The fastest way to launch and trade memecoins on Solana.
-              Fair launches, instant liquidity, and moon potential! 🚀
+              {tagline}
             </p>
           </motion.div>
 
@@ -124,12 +131,12 @@ export default function HomePage() {
             className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto mt-12"
           >
             <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700">
-              <TrendingUp className="w-8 h-8 text-purple-400 mb-2 mx-auto" />
+              <TrendingUp className="w-8 h-8 text-yellow-400 mb-2 mx-auto" />
               <p className="text-3xl font-bold text-white">{tokens.length}</p>
               <p className="text-gray-400">Tokens Launched</p>
             </div>
             <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700">
-              <Rocket className="w-8 h-8 text-pink-400 mb-2 mx-auto" />
+              <Rocket className="w-8 h-8 text-yellow-400 mb-2 mx-auto" />
               <p className="text-3xl font-bold text-white">$5.2M</p>
               <p className="text-gray-400">Total Volume</p>
             </div>

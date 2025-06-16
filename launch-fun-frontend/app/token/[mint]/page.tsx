@@ -252,7 +252,7 @@ export default function TokenPage() {
 
   if (!token) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900/20 to-gray-900">
+      <main className="min-h-screen bg-gradient-to-br from-black via-yellow-900/20 to-black">
         <Header />
         <div className="flex items-center justify-center min-h-[80vh]">
           <p className="text-gray-400">Token not found</p>
@@ -266,11 +266,11 @@ export default function TokenPage() {
 
   return (
     <Toast.Provider swipeDirection="right">
-      <main className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900/20 to-gray-900">
+      <main className="min-h-screen bg-gradient-to-br from-black via-yellow-900/20 to-black">
         {/* Animated Background */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-yellow-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-yellow-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
         </div>
 
         <Header />
@@ -356,7 +356,7 @@ export default function TokenPage() {
                   </div>
                   <div className="w-full bg-gray-700 rounded-full h-3">
                     <div
-                      className="bg-gradient-to-r from-purple-500 to-pink-500 h-3 rounded-full transition-all duration-500"
+                      className="bg-gradient-to-r from-yellow-600 to-yellow-400 h-3 rounded-full transition-all duration-500"
                       style={{ width: `${token.bondingCurveProgress}%` }}
                     />
                   </div>
@@ -411,7 +411,7 @@ export default function TokenPage() {
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="0.0"
-                    className="w-full px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                    className="w-full px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 transition-colors"
                   />
                 </div>
 

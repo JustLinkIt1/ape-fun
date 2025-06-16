@@ -31,10 +31,10 @@ export const TokenCard: FC<TokenCardProps> = ({ token, index, onQuickBuy }) => {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: index * 0.05 }}
         whileHover={{ y: -5, scale: 1.02 }}
-        className="group relative bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700 hover:border-purple-500/50 transition-all duration-300 cursor-pointer overflow-hidden h-full"
+        className="group relative bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700 hover:border-yellow-500/50 transition-all duration-300 cursor-pointer overflow-hidden h-full"
       >
         {/* Gradient overlay on hover */}
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-yellow-600/10 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         
         <div className="relative z-10">
         <div className="flex items-center mb-4">
@@ -61,7 +61,7 @@ export const TokenCard: FC<TokenCardProps> = ({ token, index, onQuickBuy }) => {
           {[...Array(10)].map((_, j) => (
             <div
               key={j}
-              className="flex-1 mx-0.5 bg-gradient-to-t from-purple-500 to-pink-500 rounded-t transition-all duration-300"
+              className="flex-1 mx-0.5 bg-gradient-to-t from-yellow-600 to-yellow-400 rounded-t transition-all duration-300"
               style={{ 
                 height: `${Math.random() * 100}%`,
                 opacity: 0.6 + (j / 10) * 0.4
@@ -95,7 +95,7 @@ export const TokenCard: FC<TokenCardProps> = ({ token, index, onQuickBuy }) => {
               </div>
               <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
                 <motion.div 
-                  className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
+                  className="h-full bg-gradient-to-r from-yellow-600 to-yellow-400"
                   initial={{ width: 0 }}
                   animate={{ width: `${token.bondingCurveProgress}%` }}
                   transition={{ delay: 0.5 + index * 0.1, duration: 1 }}
@@ -112,7 +112,7 @@ export const TokenCard: FC<TokenCardProps> = ({ token, index, onQuickBuy }) => {
           }}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="w-full mt-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-medium shadow-lg hover:shadow-purple-500/25 transition-all duration-200"
+          className="w-full mt-6 py-3 bg-gradient-to-r from-yellow-600 to-yellow-400 text-black rounded-xl font-medium shadow-lg hover:shadow-yellow-500/25 transition-all duration-200"
         >
           Quick Buy
         </motion.button>
