@@ -17,7 +17,7 @@ from solana.rpc.commitment import Confirmed
 from solana.keypair import Keypair
 from solana.publickey import PublicKey
 from solana.transaction import Transaction
-from solana.system_program import SYS_PROGRAM_ID, transfer, TransferParams
+from solana.system_program import SYS_PROGRAM_ID, SYSVAR_RENT_PUBKEY, transfer, TransferParams
 from spl.token.constants import TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID
 from spl.token.instructions import (
     create_mint,
@@ -51,6 +51,7 @@ class TokenMetadata:
     symbol: str
     description: str
     image_url: str
+    uri: str
     external_url: Optional[str] = None
     twitter: Optional[str] = None
     telegram: Optional[str] = None
@@ -574,64 +575,34 @@ class ProductionMemecoinLaunchpad:
         payer: PublicKey,
         update_authority: PublicKey,
         metadata: TokenMetadata,
-        is_mutable: bool = True
+        is_mutable: bool = True,
     ):
-        """Create Metaplex metadata instruction"""
-        from solana.transaction import TransactionInstruction, AccountMeta
-        
-        # Metadata structure for Metaplex
-        data = bytearray()
-        
-        # Instruction discriminator for CreateMetadataAccountV3
-        data.extend(bytes([33]))  # CreateMetadataAccountV3 instruction
-        
-        # Encode metadata
-        # Name
-        name_bytes = metadata.name.encode('utf-8')[:32]
-        data.extend(len(name_bytes).to_bytes(4, 'little'))
-        data.extend(name_bytes)
-        data.extend(b'\x00' * (32 - len(name_bytes)))
-        
-        # Symbol
-        symbol_bytes = metadata.symbol.encode('utf-8')[:10]
-        data.extend(len(symbol_bytes).to_bytes(4, 'little'))
-        data.extend(symbol_bytes)
-        data.extend(b'\x00' * (10 - len(symbol_bytes)))
-        
-        # URI
-        uri_bytes = metadata.image_url.encode('utf-8')[:200]
-        data.extend(len(uri_bytes).to_bytes(4, 'little'))
-        data.extend(uri_bytes)
-        
-        # Seller fee basis points (0 for memecoins)
-        data.extend((0).to_bytes(2, 'little'))
-        
-        # Creators (None)
-        data.append(0)  # None
-        
-        # Collection (None)
-        data.append(0)  # None
-        
-        # Uses (None)
-        data.append(0)  # None
-        
-        # Is mutable
-        data.append(1 if is_mutable else 0)
-        
-        # Collection details (None)
-        data.append(0)  # None
-        
-        return TransactionInstruction(
-            program_id=METAPLEX_METADATA_PROGRAM_ID,
-            data=bytes(data),
-            keys=[
-                AccountMeta(pubkey=metadata_pda, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=mint, is_signer=False, is_writable=False),
-                AccountMeta(pubkey=mint_authority, is_signer=True, is_writable=False),
-                AccountMeta(pubkey=payer, is_signer=True, is_writable=True),
-                AccountMeta(pubkey=update_authority, is_signer=False, is_writable=False),
-                AccountMeta(pubkey=SYS_PROGRAM_ID, is_signer=False, is_writable=False),
-            ]
+        """Create Metaplex metadata instruction using official library"""
+
+        from mpl_token_metadata.instructions import create_metadata_account_v3
+        from mpl_token_metadata.layout import DataV2
+
+        data = DataV2(
+            name=metadata.name,
+            symbol=metadata.symbol,
+            uri=metadata.uri,
+            seller_fee_basis_points=0,
+            creators=None,
+            collection=None,
+            uses=None,
+        )
+
+        return create_metadata_account_v3(
+            {
+                "metadata": metadata_pda,
+                "mint": mint,
+                "mint_authority": mint_authority,
+                "payer": payer,
+                "update_authority": update_authority,
+                "system_program": SYS_PROGRAM_ID,
+                "rent": SYSVAR_RENT_PUBKEY,
+            },
+            {"data": data, "is_mutable": is_mutable, "collection_details": None},
         )
     
     def _update_metadata_to_immutable(
@@ -694,6 +665,7 @@ def launch_memecoin_mainnet():
         symbol="MOONDOGE",
         description="The ultimate memecoin taking Doge to the moon! 🚀🌙",
         image_url="https://arweave.net/your-token-image-url",  # Upload to Arweave first
+        uri="https://arweave.net/your-metadata.json",
         external_url="https://moondoge.com",
         twitter="https://twitter.com/moondoge",
         telegram="https://t.me/moondoge"
