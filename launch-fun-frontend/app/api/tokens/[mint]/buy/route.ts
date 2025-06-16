@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-export async function POST(request: NextRequest, { params }: { params: { mint: string } }) {
+export async function POST(request: NextRequest, context: any) {
+  const { params } = context as { params: { mint: string } }
   try {
     const body = await request.json()
     const { amount, slippage, buyer } = body
