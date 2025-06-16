@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Connection, Keypair, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL, TransactionInstruction } from '@solana/web3.js'
+import { Connection, Keypair, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js'
 import {
   TOKEN_PROGRAM_ID,
   createInitializeMintInstruction,
@@ -10,6 +10,7 @@ import {
   AuthorityType
 } from '@solana/spl-token'
 import { savePlatformToken } from '@/lib/tokenRegistry'
+import { createCreateMetadataAccountV3Instruction } from '@metaplex-foundation/mpl-token-metadata'
 
 // Platform configuration
 const PLATFORM_CONFIG = {
@@ -22,78 +23,6 @@ const PLATFORM_CONFIG = {
 
 // Metaplex Token Metadata Program ID
 const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s')
-
-// Metaplex Token Metadata Program ID
-const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s')
-
-// Helper function to create metadata account instruction manually
-function createMetadataInstruction(
-  mint: PublicKey,
-  mintAuthority: PublicKey,
-  payer: PublicKey,
-  updateAuthority: PublicKey,
-  name: string,
-  symbol: string,
-  uri: string
-): TransactionInstruction {
-  // Get metadata PDA
-  const [metadataPDA] = PublicKey.findProgramAddressSync(
-    [
-      Buffer.from('metadata'),
-      TOKEN_METADATA_PROGRAM_ID.toBuffer(),
-      mint.toBuffer(),
-    ],
-    TOKEN_METADATA_PROGRAM_ID
-  )
-
-  // Instruction discriminator for CreateMetadataAccountV3 (decimal 33)
-  const discriminator = Buffer.from([33])
-  
-  // Serialize the instruction data using borsh-like encoding
-  const data = Buffer.concat([
-    discriminator,
-    // DataV2 struct
-    serializeString(name, 32),      // name (max 32 bytes)
-    serializeString(symbol, 10),    // symbol (max 10 bytes)
-    serializeString(uri, 200),      // uri (max 200 bytes)
-    Buffer.from([0, 0]),            // seller_fee_basis_points (u16) = 0
-    Buffer.from([1]),               // creators (Option) = Some
-    Buffer.from([1, 0, 0, 0]),      // creators vector length = 1
-    updateAuthority.toBuffer(),     // creator address
-    Buffer.from([0]),               // verified = false
-    Buffer.from([100]),             // share = 100
-    Buffer.from([0]),               // collection (Option) = None
-    Buffer.from([0]),               // uses (Option) = None
-    Buffer.from([1]),               // isMutable = true
-    Buffer.from([0]),               // collectionDetails (Option) = None
-  ])
-
-  const keys = [
-    { pubkey: metadataPDA, isSigner: false, isWritable: true },
-    { pubkey: mint, isSigner: false, isWritable: false },
-    { pubkey: mintAuthority, isSigner: true, isWritable: false },
-    { pubkey: payer, isSigner: true, isWritable: false },
-    { pubkey: updateAuthority, isSigner: false, isWritable: false },
-    { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-  ]
-
-  return new TransactionInstruction({
-    keys,
-    programId: TOKEN_METADATA_PROGRAM_ID,
-    data,
-  })
-}
-
-// Helper to serialize string with padding
-function serializeString(str: string, maxLen: number): Buffer {
-  const buf = Buffer.alloc(maxLen + 4)
-  const strBuf = Buffer.from(str, 'utf8')
-  const len = Math.min(strBuf.length, maxLen)
-  buf.writeUInt32LE(len, 0)
-  strBuf.copy(buf, 4, 0, len)
-  return buf
-}
-
 
 // Helper function to generate vanity address ending with suffix
 function generateVanityKeypair(suffix: string = 'RISE'): { keypair: Keypair, isVanity: boolean, attempts: number } {
@@ -355,14 +284,38 @@ export async function POST(request: NextRequest) {
     const metadataUri = `${process.env.NEXT_PUBLIC_APP_URL || 'https://launch.fun'}/api/metadata/${mint.toBase58()}`
     
     // Create metadata account - this must come AFTER mint initialization and BEFORE removing mint authority
-    const createMetadataIx = createMetadataInstruction(
-      mint,
-      creatorPubkey,
-      creatorPubkey,
-      creatorPubkey,
-      name,
-      symbol,
-      metadataUri
+    const [metadataPDA] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from('metadata'),
+        TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+        mint.toBuffer()
+      ],
+      TOKEN_METADATA_PROGRAM_ID
+    )
+
+    const createMetadataIx = createCreateMetadataAccountV3Instruction(
+      {
+        metadata: metadataPDA,
+        mint,
+        mintAuthority: creatorPubkey,
+        payer: creatorPubkey,
+        updateAuthority: creatorPubkey
+      },
+      {
+        createMetadataAccountArgsV3: {
+          data: {
+            name,
+            symbol,
+            uri: metadataUri,
+            sellerFeeBasisPoints: 0,
+            creators: [{ address: creatorPubkey, verified: false, share: 100 }],
+            collection: null,
+            uses: null
+          },
+          isMutable: true,
+          collectionDetails: null
+        }
+      }
     )
     
     transaction.add(createMetadataIx)
