@@ -93,7 +93,7 @@ export const QuickBuyModal: FC<QuickBuyModalProps> = ({ token, isOpen, onClose }
                       type="number"
                       value={amount}
                       onChange={(e) => setAmount(Number(e.target.value))}
-                      className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-purple-500 transition-colors"
+                      className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-yellow-500 transition-colors"
                       placeholder="0.00"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
@@ -107,7 +107,7 @@ export const QuickBuyModal: FC<QuickBuyModalProps> = ({ token, isOpen, onClose }
                         onClick={() => setAmount(preset)}
                         className={`py-2 rounded-lg text-sm font-medium transition-all ${
                           amount === preset
-                            ? 'bg-purple-500 text-white'
+                            ? 'bg-yellow-500 text-black'
                             : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
                         }`}
                       >
@@ -129,7 +129,7 @@ export const QuickBuyModal: FC<QuickBuyModalProps> = ({ token, isOpen, onClose }
                         onClick={() => setSlippage(preset)}
                         className={`py-2 rounded-lg text-sm font-medium transition-all ${
                           slippage === preset
-                            ? 'bg-purple-500 text-white'
+                            ? 'bg-yellow-500 text-black'
                             : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
                         }`}
                       >
@@ -170,7 +170,7 @@ export const QuickBuyModal: FC<QuickBuyModalProps> = ({ token, isOpen, onClose }
                     disabled={isLoading || amount <= 0}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="flex-1 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-medium shadow-lg hover:shadow-purple-500/25 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 py-3 bg-gradient-to-r from-yellow-600 to-yellow-400 text-black rounded-xl font-medium shadow-lg hover:shadow-yellow-500/25 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoading ? (
                       <span className="flex items-center justify-center">

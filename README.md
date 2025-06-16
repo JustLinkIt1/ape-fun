@@ -72,6 +72,7 @@ npm install
 ```bash
 cp launch-fun-frontend/.env.local.example launch-fun-frontend/.env.local
 # Edit .env.local with your configuration
+# To enable AI tagline generation, provide NEXT_PUBLIC_OPENAI_API_KEY
 ```
 
 ### Running the Application

@@ -61,7 +61,7 @@ export default function TestPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900/20 to-gray-900">
+    <main className="min-h-screen bg-gradient-to-br from-black via-yellow-900/20 to-black">
       <Header />
       
       <div className="max-w-4xl mx-auto px-4 py-12">
@@ -77,7 +77,7 @@ export default function TestPage() {
               onClick={() => setNetwork('mainnet')}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 network === 'mainnet' 
-                  ? 'bg-purple-500 text-white' 
+                  ? 'bg-yellow-500 text-black'
                   : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
               }`}
             >
@@ -87,7 +87,7 @@ export default function TestPage() {
               onClick={() => setNetwork('devnet')}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 network === 'devnet' 
-                  ? 'bg-purple-500 text-white' 
+                  ? 'bg-yellow-500 text-black'
                   : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
               }`}
             >
@@ -99,7 +99,7 @@ export default function TestPage() {
             <button
               onClick={testEndpoints}
               disabled={testing}
-              className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-bold hover:shadow-lg hover:shadow-purple-500/25 transition-all disabled:opacity-50"
+              className="px-6 py-3 bg-gradient-to-r from-yellow-600 to-yellow-400 text-black rounded-xl font-bold hover:shadow-lg hover:shadow-yellow-500/25 transition-all disabled:opacity-50"
             >
               {testing ? 'Testing...' : 'Test RPC Endpoints'}
             </button>

@@ -8,14 +8,15 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: '#007bff',
-        secondary: '#6c757d',
+        // Ape Fun brand palette
+        primary: '#facc15', // yellow
+        secondary: '#ffffff',
         success: '#28a745',
         danger: '#dc3545',
-        warning: '#ffc107',
+        warning: '#facc15',
         info: '#17a2b8',
-        dark: '#343a40',
-        light: '#f8f9fa',
+        dark: '#000000',
+        light: '#ffffff',
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',

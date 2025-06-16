@@ -177,7 +177,7 @@ export default function Portfolio() {
 
   if (!publicKey) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900/20 to-gray-900">
+      <main className="min-h-screen bg-gradient-to-br from-black via-yellow-900/20 to-black">
         <Header />
         <div className="flex items-center justify-center min-h-[80vh]">
           <motion.div
@@ -189,7 +189,7 @@ export default function Portfolio() {
             <p className="text-gray-400 mb-8">View your token holdings and portfolio value</p>
             <button
               onClick={() => setVisible(true)}
-              className="px-8 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-bold hover:shadow-lg hover:shadow-purple-500/25 transition-all"
+              className="px-8 py-3 bg-gradient-to-r from-yellow-600 to-yellow-400 text-black rounded-xl font-bold hover:shadow-lg hover:shadow-yellow-500/25 transition-all"
             >
               Connect Wallet
             </button>
@@ -200,11 +200,11 @@ export default function Portfolio() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900/20 to-gray-900">
+    <main className="min-h-screen bg-gradient-to-br from-black via-yellow-900/20 to-black">
       {/* Animated Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-yellow-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-yellow-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
       </div>
 
       <Header />
@@ -217,7 +217,7 @@ export default function Portfolio() {
           className="mb-8"
         >
           <h1 className="text-4xl font-bold text-white mb-8">
-            Your <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Portfolio</span>
+            Your <span className="bg-gradient-to-r from-yellow-500 to-white bg-clip-text text-transparent">Portfolio</span>
           </h1>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -278,7 +278,7 @@ export default function Portfolio() {
                 fetchHoldings()
               }}
               disabled={isLoading}
-              className="px-4 py-2 bg-purple-500/20 text-purple-400 rounded-lg hover:bg-purple-500/30 transition-colors disabled:opacity-50"
+              className="px-4 py-2 bg-yellow-500/20 text-yellow-400 rounded-lg hover:bg-yellow-500/30 transition-colors disabled:opacity-50"
             >
               {isLoading ? 'Refreshing...' : 'Refresh'}
             </button>
@@ -286,7 +286,7 @@ export default function Portfolio() {
 
           {isLoading && holdings.length === 0 ? (
             <div className="p-12 text-center">
-              <div className="animate-spin h-12 w-12 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+              <div className="animate-spin h-12 w-12 border-4 border-yellow-500 border-t-transparent rounded-full mx-auto mb-4"></div>
               <p className="text-gray-400">Loading your holdings...</p>
             </div>
           ) : holdings.length === 0 ? (
@@ -319,7 +319,7 @@ export default function Portfolio() {
                             />
                           )}
                           <div>
-                            <p className="text-white font-medium group-hover:text-purple-400 transition-colors">{holding.symbol}</p>
+                            <p className="text-white font-medium group-hover:text-yellow-400 transition-colors">{holding.symbol}</p>
                             <p className="text-sm text-gray-400">{holding.name}</p>
                           </div>
                         </Link>
