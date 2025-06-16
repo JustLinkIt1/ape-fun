@@ -494,3 +494,7 @@ class EnhancedMemecoinLaunchpad:
                 AccountMeta(pubkey=mint, is_signer=False, is_writable=False),
                 AccountMeta(pubkey=mint_authority, is_signer=True, is_writable=False),
                 AccountMeta(pubkey=payer, is_signer=True, is_writable=True),
+                AccountMeta(pubkey=update_authority, is_signer=False, is_writable=False),
+                AccountMeta(pubkey=SYS_PROGRAM_ID, is_signer=False, is_writable=False),
+            ]
+        )
