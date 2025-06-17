@@ -8,6 +8,7 @@ import { useWallet } from '@solana/wallet-adapter-react'
 import { useWalletModal } from '@solana/wallet-adapter-react-ui'
 import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { getPlatformToken, updateTokenPrice } from '@/lib/tokenRegistry'
+import { estimateBuyTokens, estimateSellReturn } from '@/lib/bondingCurve'
 import * as Toast from '@radix-ui/react-toast'
 import { ArrowUpRight, ArrowDownRight, TrendingUp, Users, DollarSign, Activity } from 'lucide-react'
 
@@ -153,7 +154,7 @@ export default function TokenPage() {
       })
   }, [])
 
-  // Calculate estimated output based on bonding curve
+  // Calculate estimated output using bonding curve helpers
   useEffect(() => {
     if (!amount || !token) {
       setEstimatedOutput(0)
@@ -166,15 +167,11 @@ export default function TokenPage() {
       return
     }
 
-    // Simple bonding curve calculation
-    // In production, this would use the actual bonding curve formula
     if (tradeType === 'buy') {
-      // Buying tokens with SOL
-      const tokensOut = inputAmount / token.price
+      const tokensOut = estimateBuyTokens(token.price, inputAmount)
       setEstimatedOutput(tokensOut)
     } else {
-      // Selling tokens for SOL
-      const solOut = inputAmount * token.price
+      const solOut = estimateSellReturn(token.price, inputAmount)
       setEstimatedOutput(solOut)
     }
   }, [amount, token, tradeType])
