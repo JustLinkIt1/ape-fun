@@ -40,9 +40,6 @@ export const Header: FC = () => {
                 alt="Ape Fun Logo"
                 className="w-20 h-20 mr-3"
               />
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-yellow-500 via-yellow-400 to-white bg-clip-text text-transparent">
-                Ape Fun
-              </h1>
               <span className="ml-2 px-2 py-1 text-xs bg-gradient-to-r from-yellow-600 to-yellow-400 text-black rounded-full">
                 BETA
               </span>
