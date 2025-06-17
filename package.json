@@ -2,5 +2,13 @@
   "dependencies": {
     "@metaplex-foundation/js": "^0.20.1",
     "@metaplex-foundation/mpl-token-metadata": "^2.13.0"
+  },
+  "scripts": {
+    "test": "mocha -r ts-node/register tests/**/*.test.js"
+  },
+  "devDependencies": {
+    "mocha": "^10.4.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.2.2"
   }
 }
