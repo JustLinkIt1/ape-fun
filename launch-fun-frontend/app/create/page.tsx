@@ -18,8 +18,7 @@ export default function CreateToken() {
     symbol: '',
     description: '',
     totalSupply: 1000000000,
-    decimals: 9,
-    useVanityAddress: true
+    decimals: 9
   })
   
   const [imageFile, setImageFile] = useState<File | null>(null)
@@ -30,13 +29,11 @@ export default function CreateToken() {
   const [toastType, setToastType] = useState<'success' | 'error'>('success')
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target
-    const checked = (e.target as HTMLInputElement).checked
-    
+    const { name, value } = e.target
+
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked :
-              name === 'totalSupply' || name === 'decimals' ? Number(value) : value
+      [name]: name === 'totalSupply' || name === 'decimals' ? Number(value) : value
     }))
   }
 
@@ -120,8 +117,7 @@ export default function CreateToken() {
         body: JSON.stringify({
           ...formData,
           imageUrl,
-          creator: publicKey.toBase58(),
-          useVanityAddress: formData.useVanityAddress
+          creator: publicKey.toBase58()
         })
       })
 
@@ -209,11 +205,9 @@ export default function CreateToken() {
         }
         
         const mintAddress = data.mint
-        const isVanity = data.vanityAddress
-        const vanitySuffix = data.vanitySuffix
-        
+
         showNotification(
-          `Token launched successfully! ${isVanity ? `✨ Got vanity address ending with "${vanitySuffix}"!` : ''} Mint: ${mintAddress.slice(0, 8)}...`,
+          `Token launched successfully! Mint: ${mintAddress.slice(0, 8)}...`,
           'success'
         )
         
@@ -229,8 +223,7 @@ export default function CreateToken() {
           symbol: '',
           description: '',
           totalSupply: 1000000000,
-          decimals: 9,
-          useVanityAddress: true
+          decimals: 9
         })
         removeImage()
       }
@@ -390,24 +383,6 @@ export default function CreateToken() {
                 />
               </div>
 
-              {/* Vanity Address Option */}
-              <div className="flex items-center space-x-3 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
-                <input
-                  type="checkbox"
-                  id="useVanityAddress"
-                  name="useVanityAddress"
-                  checked={formData.useVanityAddress}
-                  onChange={handleInputChange}
-                  className="w-4 h-4 text-yellow-600 bg-gray-900 border-gray-600 rounded focus:ring-yellow-500 focus:ring-2"
-                />
-                <label htmlFor="useVanityAddress" className="flex-1 cursor-pointer">
-                  <span className="text-sm font-medium text-yellow-400">Generate Vanity Address</span>
-                  <p className="text-xs text-yellow-300/70 mt-1">
-                    Try to create a token address ending with &quot;RISE&quot;, &quot;ISE&quot;, or &quot;SE&quot; (like pump.fun&apos;s &quot;pump&quot;).
-                    This may take 10-30 seconds. If not found quickly, a regular address will be used.
-                  </p>
-                </label>
-              </div>
 
               {/* Fee Notice */}
               <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
@@ -439,7 +414,7 @@ export default function CreateToken() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    {formData.useVanityAddress ? 'Creating Token (Finding Vanity Address)...' : 'Creating Token...'}
+                    {'Creating Token...'}
                   </span>
                 ) : !publicKey ? (
                   'Connect Wallet to Continue'
