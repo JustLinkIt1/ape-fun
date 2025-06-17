@@ -30,7 +30,7 @@ export const Header: FC = () => {
       className="relative backdrop-blur-xl bg-gray-900/50 border-b border-gray-800 sticky top-0 z-50"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20">
+        <div className="flex flex-col sm:flex-row sm:justify-between items-center h-auto sm:h-20 space-y-2 sm:space-y-0">
           <Link href="/">
             <motion.div
               className="flex items-center cursor-pointer"
@@ -47,12 +47,12 @@ export const Header: FC = () => {
             </motion.div>
           </Link>
 
-          <nav className="flex items-center space-x-4 relative">
+          <nav className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4 relative">
             <motion.a
               href="/create"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="px-4 py-2 bg-gradient-to-r from-yellow-600/20 to-yellow-400/20 border border-yellow-500/50 text-yellow-400 rounded-xl font-medium hover:border-yellow-400 transition-all"
+              className="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-yellow-600/20 to-yellow-400/20 border border-yellow-500/50 text-yellow-400 rounded-xl font-medium hover:border-yellow-400 transition-all"
             >
               🚀 Create Token
             </motion.a>
@@ -63,7 +63,7 @@ export const Header: FC = () => {
                 onClick={handleWalletClick}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className={`px-6 py-3 rounded-xl font-medium shadow-lg transition-all duration-200 ${
+                className={`w-full sm:w-auto px-6 py-3 rounded-xl font-medium shadow-lg transition-all duration-200 ${
                   publicKey
                     ? 'bg-gray-800 text-white hover:bg-gray-700'
                     : 'bg-gradient-to-r from-yellow-600 to-yellow-400 text-black hover:shadow-yellow-500/25'
