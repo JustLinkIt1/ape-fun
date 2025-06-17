@@ -8,6 +8,7 @@ import { useWallet } from '@solana/wallet-adapter-react'
 import { useWalletModal } from '@solana/wallet-adapter-react-ui'
 import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { getPlatformToken, updateTokenPrice } from '@/lib/tokenRegistry'
+import { calculateTokensForSol, calculateSolForTokens, DEFAULT_SOL_RESERVE } from '@/lib/bondingCurve'
 import * as Toast from '@radix-ui/react-toast'
 import { ArrowUpRight, ArrowDownRight, TrendingUp, Users, DollarSign, Activity } from 'lucide-react'
 
@@ -166,15 +167,14 @@ export default function TokenPage() {
       return
     }
 
-    // Simple bonding curve calculation
-    // In production, this would use the actual bonding curve formula
+    const tokenReserve = token.totalSupply
+    const solReserve = DEFAULT_SOL_RESERVE
+
     if (tradeType === 'buy') {
-      // Buying tokens with SOL
-      const tokensOut = inputAmount / token.price
+      const tokensOut = calculateTokensForSol(inputAmount, tokenReserve, solReserve)
       setEstimatedOutput(tokensOut)
     } else {
-      // Selling tokens for SOL
-      const solOut = inputAmount * token.price
+      const solOut = calculateSolForTokens(inputAmount, tokenReserve, solReserve)
       setEstimatedOutput(solOut)
     }
   }, [amount, token, tradeType])

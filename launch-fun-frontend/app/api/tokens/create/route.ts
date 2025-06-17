@@ -9,6 +9,7 @@ import {
   createSetAuthorityInstruction,
   AuthorityType
 } from '@solana/spl-token'
+import { calculateTokensForSol, DEFAULT_SOL_RESERVE } from '@/lib/bondingCurve'
 import { savePlatformToken } from '@/lib/tokenRegistry'
 // TODO: add metadata creation using @metaplex-foundation/mpl-token-metadata
 
@@ -28,7 +29,9 @@ const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzj
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, symbol, description, totalSupply, decimals, imageUrl, creator } = body
+    const { name, symbol, description, totalSupply, decimals, imageUrl, creator, initialBuy } = body
+
+    const initialBuyAmount = initialBuy ? Number(initialBuy) : 0
 
     // Validate input
     if (!name || !symbol || !creator) {
@@ -77,21 +80,36 @@ export async function POST(request: NextRequest) {
     // Parse creator public key
     const creatorPubkey = new PublicKey(creator)
     const platformWallet = new PublicKey(PLATFORM_CONFIG.taxWallet)
+    const treasuryWallet = new PublicKey(
+      process.env.NEXT_PUBLIC_TREASURY_WALLET || PLATFORM_CONFIG.taxWallet
+    )
     
     // Calculate token amounts
     const totalSupplyWithDecimals = totalSupply * Math.pow(10, decimals)
     const platformAllocation = totalSupplyWithDecimals * (PLATFORM_CONFIG.salesTax / 100)
-    const creatorAllocation = totalSupplyWithDecimals - platformAllocation
+    let creatorAllocation = totalSupplyWithDecimals - platformAllocation
+    let initialTokens = 0
+    if (initialBuyAmount > 0) {
+      initialTokens = Math.floor(
+        calculateTokensForSol(initialBuyAmount, creatorAllocation, DEFAULT_SOL_RESERVE)
+      )
+      creatorAllocation -= initialTokens
+    }
     
     // Get associated token accounts
     const creatorTokenAccount = await getAssociatedTokenAddress(
       mint,
       creatorPubkey
     )
-    
+
     const platformTokenAccount = await getAssociatedTokenAddress(
       mint,
       platformWallet
+    )
+
+    const treasuryTokenAccount = await getAssociatedTokenAddress(
+      mint,
+      treasuryWallet
     )
     
     // Get minimum balance for rent exemption
@@ -108,6 +126,16 @@ export async function POST(request: NextRequest) {
           fromPubkey: creatorPubkey,
           toPubkey: platformWallet,
           lamports: PLATFORM_CONFIG.launchFee * LAMPORTS_PER_SOL
+        })
+      )
+    }
+
+    if (initialBuyAmount > 0) {
+      transaction.add(
+        SystemProgram.transfer({
+          fromPubkey: creatorPubkey,
+          toPubkey: treasuryWallet,
+          lamports: initialBuyAmount * LAMPORTS_PER_SOL
         })
       )
     }
@@ -143,7 +171,16 @@ export async function POST(request: NextRequest) {
         mint
       )
     )
-    
+
+    transaction.add(
+      createAssociatedTokenAccountInstruction(
+        creatorPubkey,
+        treasuryTokenAccount,
+        treasuryWallet,
+        mint
+      )
+    )
+
     if (platformAllocation > 0) {
       transaction.add(
         createAssociatedTokenAccountInstruction(
@@ -155,11 +192,22 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Mint tokens to creator
+    if (initialTokens > 0) {
+      transaction.add(
+        createMintToInstruction(
+          mint,
+          creatorTokenAccount,
+          creatorPubkey,
+          initialTokens
+        )
+      )
+    }
+
+    // Mint remaining supply to treasury
     transaction.add(
       createMintToInstruction(
         mint,
-        creatorTokenAccount,
+        treasuryTokenAccount,
         creatorPubkey,
         creatorAllocation
       )

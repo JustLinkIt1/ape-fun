@@ -2,5 +2,8 @@
   "dependencies": {
     "@metaplex-foundation/js": "^0.20.1",
     "@metaplex-foundation/mpl-token-metadata": "^2.13.0"
+  },
+  "scripts": {
+    "test": "node tests/bondingCurve.test.js"
   }
 }
