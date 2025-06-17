@@ -24,63 +24,11 @@ const PLATFORM_CONFIG = {
 // Metaplex Token Metadata Program ID
 const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s')
 
-// Helper function to generate vanity address ending with suffix
-function generateVanityKeypair(suffix: string = 'RISE'): { keypair: Keypair, isVanity: boolean, attempts: number } {
-  console.log(`Generating vanity address ending with ${suffix}...`)
-  let attempts = 0
-  const startTime = Date.now()
-  
-  // For a 4-character suffix, probability is 1 in 58^4 ≈ 1 in 11.3 million
-  // We'll try for a reasonable time but have a fallback
-  const maxAttempts = suffix.length === 4 ? 200000 : 100000
-  
-  while (attempts < maxAttempts) {
-    attempts++
-    const keypair = Keypair.generate()
-    const address = keypair.publicKey.toBase58()
-    
-    // Check if address ends with desired suffix (case sensitive)
-    if (address.endsWith(suffix)) {
-      const timeElapsed = (Date.now() - startTime) / 1000
-      console.log(`✨ Found vanity address after ${attempts} attempts in ${timeElapsed}s: ${address}`)
-      return { keypair, isVanity: true, attempts }
-    }
-    
-    // Log progress every 25000 attempts
-    if (attempts % 25000 === 0) {
-      const timeElapsed = (Date.now() - startTime) / 1000
-      console.log(`Vanity address generation: ${attempts} attempts (${timeElapsed.toFixed(1)}s elapsed)...`)
-    }
-  }
-  
-  // Fallback to regular address
-  const keypair = Keypair.generate()
-  const timeElapsed = (Date.now() - startTime) / 1000
-  console.log(`⚠️ Using regular address after ${attempts} attempts (${timeElapsed.toFixed(1)}s). Address: ${keypair.publicKey.toBase58()}`)
-  return { keypair, isVanity: false, attempts }
-}
-
-// Alternative: Try for shorter suffix first
-function generateSmartVanityKeypair(): { keypair: Keypair, suffix: string, attempts: number } {
-  // Try progressively shorter suffixes
-  const suffixes = ['RISE', 'ISE', 'SE']
-  
-  for (const suffix of suffixes) {
-    console.log(`Trying for suffix: ${suffix}`)
-    const result = generateVanityKeypair(suffix)
-    if (result.isVanity) {
-      return { keypair: result.keypair, suffix, attempts: result.attempts }
-    }
-  }
-  
-  // Fallback
-  return { keypair: Keypair.generate(), suffix: '', attempts: 0 }
-}
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, symbol, description, totalSupply, decimals, imageUrl, creator, useVanityAddress } = body
+    const { name, symbol, description, totalSupply, decimals, imageUrl, creator } = body
 
     // Validate input
     if (!name || !symbol || !creator) {
@@ -120,25 +68,11 @@ export async function POST(request: NextRequest) {
       throw new Error(`Failed to connect to any RPC endpoint. Last error: ${lastError?.message}`)
     }
     
-    // Generate mint keypair (vanity or regular)
-    let mintKeypair: Keypair
-    let vanityInfo = { isVanity: false, suffix: '', attempts: 0 }
-    
-    if (useVanityAddress !== false) {
-      // Try smart vanity generation (tries RISE, then ISE, then SE)
-      const result = generateSmartVanityKeypair()
-      mintKeypair = result.keypair
-      vanityInfo = {
-        isVanity: result.suffix !== '',
-        suffix: result.suffix,
-        attempts: result.attempts
-      }
-    } else {
-      mintKeypair = Keypair.generate()
-    }
-    
+    // Generate mint keypair
+    const mintKeypair = Keypair.generate()
+
     const mint = mintKeypair.publicKey
-    console.log(`Token mint address: ${mint.toBase58()} ${vanityInfo.isVanity ? `(Vanity: ${vanityInfo.suffix})` : ''}`)
+    console.log(`Token mint address: ${mint.toBase58()}`)
     
     // Parse creator public key
     const creatorPubkey = new PublicKey(creator)
@@ -328,11 +262,8 @@ export async function POST(request: NextRequest) {
       success: true,
       transaction: transaction.serialize({ requireAllSignatures: false }).toString('base64'),
       mint: mint.toBase58(),
-      message: `Token created successfully with on-chain metadata! ${vanityInfo.isVanity ? `✨ Got vanity address ending with "${vanityInfo.suffix}"!` : ''}`,
-      metadataUri: metadataUri,
-      vanityAddress: vanityInfo.isVanity,
-      vanitySuffix: vanityInfo.suffix,
-      vanityAttempts: vanityInfo.attempts
+      message: `Token created successfully with on-chain metadata!`,
+      metadataUri: metadataUri
     })
   } catch (error: any) {
     console.error('Error creating token:', error)
