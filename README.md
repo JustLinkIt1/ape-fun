@@ -110,3 +110,5 @@ This project is licensed under the MIT License.
 ## Disclaimer
 
 This is experimental software. Use at your own risk. Always verify smart contract interactions and never invest more than you can afford to lose in memecoins.
+
+The Ape Fun website is under active development. It may contain bugs or security vulnerabilities. Use it at your own risk, and Ape Fun takes no responsibility for any lost funds or tokens.
