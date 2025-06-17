@@ -1,6 +1,6 @@
 'use client'
 
-import { FC } from 'react'
+import { FC, useState } from 'react'
 import Link from 'next/link'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useWalletModal } from '@solana/wallet-adapter-react-ui'
@@ -9,10 +9,11 @@ import { motion } from 'framer-motion'
 export const Header: FC = () => {
   const { publicKey, disconnect } = useWallet()
   const { setVisible } = useWalletModal()
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const handleWalletClick = () => {
     if (publicKey) {
-      disconnect()
+      setMenuOpen((prev) => !prev)
     } else {
       setVisible(true)
     }
@@ -46,23 +47,7 @@ export const Header: FC = () => {
             </motion.div>
           </Link>
 
-          <nav className="flex items-center space-x-4">
-            {/* Additional nav items */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              Docs
-            </motion.button>
-            <motion.a
-              href="/portfolio"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              Portfolio
-            </motion.a>
+          <nav className="flex items-center space-x-4 relative">
             <motion.a
               href="/create"
               whileHover={{ scale: 1.05 }}
@@ -73,18 +58,44 @@ export const Header: FC = () => {
             </motion.a>
 
             {/* Wallet Button */}
-            <motion.button 
-              onClick={handleWalletClick}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className={`px-6 py-3 rounded-xl font-medium shadow-lg transition-all duration-200 ${
-                publicKey 
-                  ? 'bg-gray-800 text-white hover:bg-gray-700'
-                  : 'bg-gradient-to-r from-yellow-600 to-yellow-400 text-black hover:shadow-yellow-500/25'
-              }`}
-            >
-              {publicKey ? formatAddress(publicKey.toBase58()) : 'Connect Wallet'}
-            </motion.button>
+            <div className="relative">
+              <motion.button
+                onClick={handleWalletClick}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`px-6 py-3 rounded-xl font-medium shadow-lg transition-all duration-200 ${
+                  publicKey
+                    ? 'bg-gray-800 text-white hover:bg-gray-700'
+                    : 'bg-gradient-to-r from-yellow-600 to-yellow-400 text-black hover:shadow-yellow-500/25'
+                }`}
+              >
+                {publicKey ? formatAddress(publicKey.toBase58()) : 'Connect Wallet'}
+              </motion.button>
+              {menuOpen && publicKey && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-xl shadow-lg overflow-hidden z-50"
+                >
+                  <Link
+                    href="/portfolio"
+                    className="block px-4 py-2 text-sm text-gray-200 hover:bg-gray-700"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Portfolio
+                  </Link>
+                  <button
+                    onClick={() => {
+                      disconnect()
+                      setMenuOpen(false)
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700"
+                  >
+                    Disconnect
+                  </button>
+                </motion.div>
+              )}
+            </div>
           </nav>
         </div>
       </div>
