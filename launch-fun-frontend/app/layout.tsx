@@ -10,6 +10,10 @@ export const metadata: Metadata = {
   title: 'Ape Fun - Solana Memecoin Trading',
   description: 'The most advanced memecoin launchpad on Solana',
   keywords: 'solana, memecoin, trading, defi, crypto, ape fun',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+  },
   openGraph: {
     title: 'Ape Fun - Solana Memecoin Trading',
     description: 'The most advanced memecoin launchpad on Solana',
