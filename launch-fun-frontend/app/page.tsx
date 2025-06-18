@@ -23,7 +23,8 @@ const mockTokens: Token[] = [
     volume24h: 450000,
     holders: 1234,
     imageUrl: 'https://api.dicebear.com/7.x/shapes/svg?seed=DOGK',
-    bondingCurveProgress: 75
+    bondingCurveProgress: 75,
+    salesTax: 3
   },
   {
     address: 'PEPE2222222222222222222222222222222222222222',
@@ -36,7 +37,8 @@ const mockTokens: Token[] = [
     volume24h: 234000,
     holders: 987,
     imageUrl: 'https://api.dicebear.com/7.x/shapes/svg?seed=PEPEC',
-    bondingCurveProgress: 45
+    bondingCurveProgress: 45,
+    salesTax: 3
   },
   {
     address: 'MOON3333333333333333333333333333333333333333',
@@ -49,7 +51,8 @@ const mockTokens: Token[] = [
     volume24h: 780000,
     holders: 2345,
     imageUrl: 'https://api.dicebear.com/7.x/shapes/svg?seed=MOON',
-    bondingCurveProgress: 92
+    bondingCurveProgress: 92,
+    salesTax: 3
   }
 ]
 
@@ -77,7 +80,8 @@ export default function HomePage() {
       volume24h: pt.volume24h,
       holders: pt.holders,
       imageUrl: pt.imageUrl,
-      bondingCurveProgress: pt.bondingCurveProgress
+      bondingCurveProgress: pt.bondingCurveProgress,
+      salesTax: pt.salesTax
     }))
     
     // Combine platform tokens with mock tokens
