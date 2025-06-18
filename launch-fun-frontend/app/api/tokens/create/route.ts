@@ -9,7 +9,6 @@ import {
   createSetAuthorityInstruction,
   AuthorityType
 } from '@solana/spl-token'
-import { savePlatformToken } from '@/lib/tokenRegistry'
 // TODO: add metadata creation using @metaplex-foundation/mpl-token-metadata
 
 // Platform configuration
@@ -213,25 +212,7 @@ export async function POST(request: NextRequest) {
     // Add mint keypair as signer
     transaction.partialSign(mintKeypair)
     
-    // Save token to registry with metadata
-    savePlatformToken({
-      mint: mint.toBase58(),
-      name,
-      symbol,
-      decimals,
-      totalSupply,
-      description,
-      imageUrl: imageUrl || '',
-      creator: creator,
-      createdAt: new Date().toISOString(),
-      price: 0.000001, // Initial price
-      priceChange24h: 0,
-      marketCap: 1000, // Initial market cap
-      volume24h: 0,
-      holders: 1,
-      bondingCurveProgress: 0,
-      salesTax: PLATFORM_CONFIG.salesTax
-    })
+    // Save token to registry on the client after transaction confirmation
     
     // Return the transaction for the user to sign
     return NextResponse.json({
