@@ -6,6 +6,8 @@ import { Header } from '@/components/Header'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useWalletModal } from '@solana/wallet-adapter-react-ui'
 import { Connection, PublicKey, Transaction } from '@solana/web3.js'
+import { savePlatformToken } from '@/lib/tokenRegistry'
+import { PLATFORM_CONFIG } from '@/lib/constants'
 import * as Toast from '@radix-ui/react-toast'
 import { Upload, X } from 'lucide-react'
 
@@ -210,6 +212,26 @@ export default function CreateToken() {
           `Token launched successfully! Mint: ${mintAddress.slice(0, 8)}...`,
           'success'
         )
+
+        // Persist the new token in localStorage
+        savePlatformToken({
+          mint: mintAddress,
+          name: formData.name,
+          symbol: formData.symbol,
+          description: formData.description,
+          imageUrl: imageUrl,
+          creator: publicKey.toBase58(),
+          totalSupply: formData.totalSupply,
+          decimals: formData.decimals,
+          createdAt: new Date().toISOString(),
+          price: 0.000001,
+          priceChange24h: 0,
+          marketCap: 1000,
+          volume24h: 0,
+          holders: 1,
+          bondingCurveProgress: 0,
+          salesTax: PLATFORM_CONFIG.salesTax
+        })
         
         // Open token page in new tab
         window.open(`/token/${mintAddress}`, '_blank')
