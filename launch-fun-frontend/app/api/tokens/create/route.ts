@@ -9,7 +9,6 @@ import {
   createSetAuthorityInstruction,
   AuthorityType
 } from '@solana/spl-token'
-// TODO: add metadata creation using @metaplex-foundation/mpl-token-metadata
 
 // Platform configuration
 const PLATFORM_CONFIG = {
@@ -149,9 +148,50 @@ export async function POST(request: NextRequest) {
         creatorAllocation
       )
     )
-    
+
+    // Construct metadata URI using our API endpoint
+    const metadataUri = `${process.env.NEXT_PUBLIC_APP_URL || 'https://launch.fun'}/api/metadata/${mint.toBase58()}`
+
+    // Derive metadata PDA for the mint
+    const [metadataPDA] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from('metadata'),
+        TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+        mint.toBuffer()
+      ],
+      TOKEN_METADATA_PROGRAM_ID
+    )
+
+    // Create on-chain metadata account before revoking mint authority
+    transaction.add(
+      createCreateMetadataAccountV3Instruction(
+        {
+          metadata: metadataPDA,
+          mint,
+          mintAuthority: creatorPubkey,
+          payer: creatorPubkey,
+          updateAuthority: creatorPubkey
+        },
+        {
+          createMetadataAccountArgsV3: {
+            data: {
+              name,
+              symbol,
+              uri: metadataUri,
+              sellerFeeBasisPoints: 0,
+              creators: null,
+              collection: null,
+              uses: null
+            },
+            isMutable: true,
+            collectionDetails: null
+          }
+        }
+      )
+    )
+
     // No initial platform allocation - fees collected on trades
-    
+
     // Remove mint authority (renounce minting)
     transaction.add(
       createSetAuthorityInstruction(
@@ -188,22 +228,6 @@ export async function POST(request: NextRequest) {
       }]
     }
 
-    // For now, we'll use our API endpoint as metadata URI
-    // In production, this should be uploaded to IPFS or Arweave
-    const metadataUri = `${process.env.NEXT_PUBLIC_APP_URL || 'https://launch.fun'}/api/metadata/${mint.toBase58()}`
-    
-    // Create metadata account - this must come AFTER mint initialization and BEFORE removing mint authority
-    const [metadataPDA] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from('metadata'),
-        TOKEN_METADATA_PROGRAM_ID.toBuffer(),
-        mint.toBuffer()
-      ],
-      TOKEN_METADATA_PROGRAM_ID
-    )
-
-    // Metadata creation is not implemented in this test build
-    
     // Get recent blockhash
     const { blockhash } = await connection.getLatestBlockhash()
     transaction.recentBlockhash = blockhash
@@ -220,7 +244,8 @@ export async function POST(request: NextRequest) {
       transaction: transaction.serialize({ requireAllSignatures: false }).toString('base64'),
       mint: mint.toBase58(),
       message: `Token created successfully with on-chain metadata!`,
-      metadataUri: metadataUri
+      metadataUri: metadataUri,
+      metadataPda: metadataPDA.toBase58()
     })
   } catch (error: any) {
     console.error('Error creating token:', error)
