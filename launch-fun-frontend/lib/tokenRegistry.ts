@@ -1,7 +1,7 @@
 // In-memory token registry for platform tokens
 // In production, this would be a database
 
-interface PlatformToken {
+export interface PlatformToken {
   mint: string
   name: string
   symbol: string
@@ -22,17 +22,26 @@ interface PlatformToken {
 
 // Store tokens in localStorage for persistence
 const STORAGE_KEY = 'launch_fun_tokens'
+// Simple server-side store so API routes can access the same data
+// This is not persisted between server restarts
+const globalAny: any = globalThis as any
+if (!globalAny.__TOKENS__) {
+  globalAny.__TOKENS__ = {}
+}
+const serverStore: Record<string, PlatformToken> = globalAny.__TOKENS__
 
 export function savePlatformToken(token: PlatformToken) {
   const tokens = getPlatformTokens()
   tokens[token.mint] = token
   if (typeof window !== 'undefined') {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tokens))
+  } else {
+    serverStore[token.mint] = token
   }
 }
 
 export function getPlatformTokens(): Record<string, PlatformToken> {
-  if (typeof window === 'undefined') return {}
+  if (typeof window === 'undefined') return serverStore
   
   const stored = localStorage.getItem(STORAGE_KEY)
   if (!stored) return {}
