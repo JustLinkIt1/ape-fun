@@ -73,6 +73,7 @@ npm install
 ```bash
 cp launch-fun-frontend/.env.local.example launch-fun-frontend/.env.local
 # Edit .env.local with your configuration
+# NFT_STORAGE_API_KEY is required for image uploads via the /api/upload endpoint
 # To enable AI tagline generation, provide NEXT_PUBLIC_OPENAI_API_KEY. Optionally set NEXT_PUBLIC_HELIUS_API_KEY for a dedicated RPC endpoint
 ```
 
