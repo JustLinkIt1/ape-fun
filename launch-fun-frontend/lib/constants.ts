@@ -15,7 +15,7 @@ export const DEVNET_RPC_ENDPOINTS = [
 // Platform configuration
 export const PLATFORM_CONFIG = {
   taxWallet: '3tAQBPnSxMZ7CAvgib29hWFiebRFqupEHLZQENSogewi',
-  salesTax: 3, // 3% sales tax
+  salesTax: 3, // 3% trading fee in SOL
   launchFee: 0, // 0 SOL launch fee for testing
   bondingTarget: 69000, // Bond to Raydium at 69k market cap
   network: 'mainnet-beta' // 'mainnet-beta' or 'devnet'

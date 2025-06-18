@@ -6,7 +6,7 @@ A high-performance Solana memecoin trading interface with token creation, portfo
 
 - 🚀 **Token Creation**: Launch SPL tokens on Solana mainnet/devnet
 - 💼 **Portfolio Tracking**: Real-time portfolio value in SOL and USD
-- 💰 **Platform Revenue**: 3% initial token allocation
+- 💰 **Platform Revenue**: 3% trading fee collected in SOL
 - 🔄 **Auto-Bonding**: Automatic Raydium listing at 69k market cap
 - 📊 **Price Tracking**: Real-time SOL/USD price updates
 - 🎨 **Modern UI**: Gradient-heavy design with animations
@@ -48,7 +48,7 @@ http://localhost:3000
 1. Connect wallet with SOL balance
 2. Fill token details on `/create`
 3. Launch token (minimal gas fees ~0.01 SOL)
-4. 3% of supply goes to platform wallet
+4. A 3% trading fee in SOL goes to the platform wallet
 
 ## Handling RPC Errors
 
@@ -72,7 +72,7 @@ If you encounter 403 errors or connection issues:
 ## Platform Configuration
 
 - **Tax Wallet**: `3tAQBPnSxMZ7CAvgib29hWFiebRFqupEHLZQENSogewi`
-- **Sales Tax**: 3% initial allocation (adjustable)
+- **Sales Tax**: 3% trading fee in SOL (adjustable)
 - **Launch Fee**: 0 SOL (testing mode)
 - **Bonding Target**: 69k market cap
 

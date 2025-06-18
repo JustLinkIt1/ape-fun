@@ -80,8 +80,8 @@ export async function POST(request: NextRequest) {
     
     // Calculate token amounts
     const totalSupplyWithDecimals = totalSupply * Math.pow(10, decimals)
-    const platformAllocation = totalSupplyWithDecimals * (PLATFORM_CONFIG.salesTax / 100)
-    const creatorAllocation = totalSupplyWithDecimals - platformAllocation
+    const platformAllocation = 0 // sales tax collected on trades
+    const creatorAllocation = totalSupplyWithDecimals
     
     // Get associated token accounts
     const creatorTokenAccount = await getAssociatedTokenAddress(
@@ -89,10 +89,6 @@ export async function POST(request: NextRequest) {
       creatorPubkey
     )
     
-    const platformTokenAccount = await getAssociatedTokenAddress(
-      mint,
-      platformWallet
-    )
     
     // Get minimum balance for rent exemption
     const mintSpace = 82 // Size of mint account
@@ -144,16 +140,6 @@ export async function POST(request: NextRequest) {
       )
     )
     
-    if (platformAllocation > 0) {
-      transaction.add(
-        createAssociatedTokenAccountInstruction(
-          creatorPubkey,
-          platformTokenAccount,
-          platformWallet,
-          mint
-        )
-      )
-    }
     
     // Mint tokens to creator
     transaction.add(
@@ -165,17 +151,7 @@ export async function POST(request: NextRequest) {
       )
     )
     
-    // Mint platform allocation
-    if (platformAllocation > 0) {
-      transaction.add(
-        createMintToInstruction(
-          mint,
-          platformTokenAccount,
-          creatorPubkey,
-          platformAllocation
-        )
-      )
-    }
+    // No initial platform allocation - fees collected on trades
     
     // Remove mint authority (renounce minting)
     transaction.add(

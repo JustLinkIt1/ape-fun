@@ -168,11 +168,13 @@ export default function TokenPage() {
     }
 
     if (tradeType === 'buy') {
-      const tokensOut = estimateBuyTokens(token.price, inputAmount)
+      const afterTax = inputAmount * (1 - token.salesTax / 100)
+      const tokensOut = estimateBuyTokens(token.price, afterTax)
       setEstimatedOutput(tokensOut)
     } else {
       const solOut = estimateSellReturn(token.price, inputAmount)
-      setEstimatedOutput(solOut)
+      const afterTax = solOut * (1 - token.salesTax / 100)
+      setEstimatedOutput(afterTax)
     }
   }, [amount, token, tradeType])
 
@@ -203,25 +205,30 @@ export default function TokenPage() {
       if (tradeType === 'buy') {
         // Simulate buying tokens
         const newPrice = token.price * 1.01 // Price goes up on buy
-        
+
+        const taxAmount = inputAmount * (token.salesTax / 100)
+
         // Only update price for platform tokens
         const isPlatformToken = getPlatformToken(mint) !== null
         if (isPlatformToken) {
           updateTokenPrice(mint, newPrice, inputAmount)
         }
-        
-        showNotification(`Bought ${estimatedOutput.toFixed(2)} ${token.symbol}!`, 'success')
+
+        showNotification(`Bought ${estimatedOutput.toFixed(2)} ${token.symbol}! Fee ${taxAmount.toFixed(4)} SOL`, 'success')
       } else {
         // Simulate selling tokens
         const newPrice = token.price * 0.99 // Price goes down on sell
-        
+
+        const grossSol = estimateSellReturn(token.price, inputAmount)
+        const taxAmount = grossSol * (token.salesTax / 100)
+
         // Only update price for platform tokens
         const isPlatformToken = getPlatformToken(mint) !== null
         if (isPlatformToken) {
           updateTokenPrice(mint, newPrice, inputAmount * token.price)
         }
-        
-        showNotification(`Sold ${amount} ${token.symbol} for ${estimatedOutput.toFixed(4)} SOL!`, 'success')
+
+        showNotification(`Sold ${amount} ${token.symbol} for ${estimatedOutput.toFixed(4)} SOL! Fee ${taxAmount.toFixed(4)} SOL`, 'success')
       }
 
       // Reset form
@@ -457,7 +464,7 @@ export default function TokenPage() {
                 {/* Info */}
                 <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
                   <p className="text-xs text-blue-400">
-                    Platform fee: {token.salesTax}% (included in price)
+                    Platform fee: {token.salesTax}% (deducted in SOL)
                   </p>
                 </div>
               </motion.div>
