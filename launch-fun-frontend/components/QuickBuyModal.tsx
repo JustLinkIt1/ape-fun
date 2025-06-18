@@ -43,7 +43,8 @@ export const QuickBuyModal: FC<QuickBuyModalProps> = ({ token, isOpen, onClose }
         body: JSON.stringify({
           amount,
           slippage,
-          buyer: publicKey.toBase58()
+          buyer: publicKey.toBase58(),
+          liquidityAccount: token.liquidityAccount
         })
       })
 

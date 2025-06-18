@@ -78,20 +78,21 @@ export async function POST(request: NextRequest) {
     const creatorPubkey = new PublicKey(creator)
     const platformWallet = new PublicKey(PLATFORM_CONFIG.taxWallet)
     
-    // Calculate token amounts
-    const totalSupplyWithDecimals = totalSupply * Math.pow(10, decimals)
-    const platformAllocation = totalSupplyWithDecimals * (PLATFORM_CONFIG.salesTax / 100)
-    const creatorAllocation = totalSupplyWithDecimals - platformAllocation
+  // Calculate token amounts
+  const totalSupplyWithDecimals = totalSupply * Math.pow(10, decimals)
+  const platformAllocation = totalSupplyWithDecimals * (PLATFORM_CONFIG.salesTax / 100)
+  const liquidityAllocation = totalSupplyWithDecimals - platformAllocation
     
     // Get associated token accounts
-    const creatorTokenAccount = await getAssociatedTokenAddress(
-      mint,
-      creatorPubkey
-    )
-    
     const platformTokenAccount = await getAssociatedTokenAddress(
       mint,
       platformWallet
+    )
+
+    const liquidityKeypair = Keypair.generate()
+    const liquidityTokenAccount = await getAssociatedTokenAddress(
+      mint,
+      liquidityKeypair.publicKey
     )
     
     // Get minimum balance for rent exemption
@@ -138,8 +139,8 @@ export async function POST(request: NextRequest) {
     transaction.add(
       createAssociatedTokenAccountInstruction(
         creatorPubkey,
-        creatorTokenAccount,
-        creatorPubkey,
+        liquidityTokenAccount,
+        liquidityKeypair.publicKey,
         mint
       )
     )
@@ -155,13 +156,13 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Mint tokens to creator
+    // Mint liquidity allocation
     transaction.add(
       createMintToInstruction(
         mint,
-        creatorTokenAccount,
+        liquidityTokenAccount,
         creatorPubkey,
-        creatorAllocation
+        liquidityAllocation
       )
     )
     
@@ -234,8 +235,8 @@ export async function POST(request: NextRequest) {
     transaction.recentBlockhash = blockhash
     transaction.feePayer = creatorPubkey
     
-    // Add mint keypair as signer
-    transaction.partialSign(mintKeypair)
+    // Add required signers
+    transaction.partialSign(mintKeypair, liquidityKeypair)
     
     // Save token to registry with metadata
     savePlatformToken({
@@ -254,7 +255,8 @@ export async function POST(request: NextRequest) {
       volume24h: 0,
       holders: 1,
       bondingCurveProgress: 0,
-      salesTax: PLATFORM_CONFIG.salesTax
+      salesTax: PLATFORM_CONFIG.salesTax,
+      liquidityAccount: liquidityTokenAccount.toBase58()
     })
     
     // Return the transaction for the user to sign

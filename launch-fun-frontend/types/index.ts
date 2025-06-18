@@ -4,6 +4,7 @@ export interface Token {
   mint: string  // Added mint field for Solana token mint address
   name: string
   symbol: string
+  liquidityAccount?: string
   price: number
   priceChange24h: number
   marketCap: number
