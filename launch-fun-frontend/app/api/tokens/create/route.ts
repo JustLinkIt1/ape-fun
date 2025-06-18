@@ -89,10 +89,13 @@ export async function POST(request: NextRequest) {
       platformWallet
     )
 
-    const liquidityKeypair = Keypair.generate()
+    // Liquidity account owned by the platform wallet
+    const liquidityWallet = new PublicKey(
+      process.env.NEXT_PUBLIC_LIQUIDITY_WALLET || PLATFORM_CONFIG.taxWallet
+    )
     const liquidityTokenAccount = await getAssociatedTokenAddress(
       mint,
-      liquidityKeypair.publicKey
+      liquidityWallet
     )
     
     // Get minimum balance for rent exemption
@@ -140,7 +143,7 @@ export async function POST(request: NextRequest) {
       createAssociatedTokenAccountInstruction(
         creatorPubkey,
         liquidityTokenAccount,
-        liquidityKeypair.publicKey,
+        liquidityWallet,
         mint
       )
     )
@@ -236,7 +239,7 @@ export async function POST(request: NextRequest) {
     transaction.feePayer = creatorPubkey
     
     // Add required signers
-    transaction.partialSign(mintKeypair, liquidityKeypair)
+    transaction.partialSign(mintKeypair)
     
     // Save token to registry with metadata
     savePlatformToken({
