@@ -4,7 +4,16 @@ import { FC, ReactNode, useMemo } from 'react'
 import { ConnectionProvider, WalletProvider as SolanaWalletProvider } from '@solana/wallet-adapter-react'
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui'
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets'
-import { MobileWalletAdapter } from '@solana-mobile/wallet-adapter-mobile'
+// The mobile wallet adapter library exports `SolanaMobileWalletAdapter` rather
+// than `MobileWalletAdapter`. Importing the wrong name causes a build-time
+// error.
+import {
+  SolanaMobileWalletAdapter,
+  createDefaultAddressSelector,
+  createDefaultAuthorizationResultCache,
+  createDefaultWalletNotFoundHandler,
+} from '@solana-mobile/wallet-adapter-mobile'
+import { WalletAdapterNetwork } from '@solana/wallet-adapter-base'
 import { clusterApiUrl } from '@solana/web3.js'
 
 // Import wallet adapter CSS
@@ -21,7 +30,13 @@ export const WalletProvider: FC<WalletProviderProps> = ({ children }) => {
   const wallets = useMemo(
     () => [
       new PhantomWalletAdapter(),
-      new MobileWalletAdapter(),
+      new SolanaMobileWalletAdapter({
+        addressSelector: createDefaultAddressSelector(),
+        appIdentity: { name: 'Ape Fun', uri: 'https://example.com', icon: '/icon.png' },
+        authorizationResultCache: createDefaultAuthorizationResultCache(),
+        cluster: WalletAdapterNetwork.Devnet,
+        onWalletNotFound: createDefaultWalletNotFoundHandler(),
+      }),
       new SolflareWalletAdapter(),
     ],
     []
