@@ -197,30 +197,48 @@ export default function TokenPage() {
 
     try {
       // In production, this would create actual swap transactions
-      // For now, we'll simulate the trade
+      // For now, we'll simulate the trade and send a placeholder request
       const inputAmount = parseFloat(amount)
-      
+
+      const isPlatformToken = getPlatformToken(mint) !== null
+
       if (tradeType === 'buy') {
-        // Simulate buying tokens
+        if (isPlatformToken) {
+          await fetch(`/api/tokens/${mint}/buy`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              amount: inputAmount,
+              buyer: publicKey.toBase58(),
+              liquidityAccount: token.liquidityAccount
+            })
+          })
+        }
+
         const newPrice = token.price * 1.01 // Price goes up on buy
-        
-        // Only update price for platform tokens
-        const isPlatformToken = getPlatformToken(mint) !== null
         if (isPlatformToken) {
           updateTokenPrice(mint, newPrice, inputAmount)
         }
-        
+
         showNotification(`Bought ${estimatedOutput.toFixed(2)} ${token.symbol}!`, 'success')
       } else {
-        // Simulate selling tokens
+        if (isPlatformToken) {
+          await fetch(`/api/tokens/${mint}/sell`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              amount: inputAmount,
+              seller: publicKey.toBase58(),
+              liquidityAccount: token.liquidityAccount
+            })
+          })
+        }
+
         const newPrice = token.price * 0.99 // Price goes down on sell
-        
-        // Only update price for platform tokens
-        const isPlatformToken = getPlatformToken(mint) !== null
         if (isPlatformToken) {
           updateTokenPrice(mint, newPrice, inputAmount * token.price)
         }
-        
+
         showNotification(`Sold ${amount} ${token.symbol} for ${estimatedOutput.toFixed(4)} SOL!`, 'success')
       }
 

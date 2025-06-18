@@ -8,6 +8,7 @@ interface PlatformToken {
   description: string
   imageUrl: string
   creator: string
+  liquidityAccount: string
   totalSupply: number
   decimals: number
   price: number // in SOL
