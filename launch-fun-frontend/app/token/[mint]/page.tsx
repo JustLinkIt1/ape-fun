@@ -216,11 +216,15 @@ export default function TokenPage() {
         }
 
         const newPrice = token.price * 1.01 // Price goes up on buy
+        const taxAmount = inputAmount * (token.salesTax / 100)
         if (isPlatformToken) {
           updateTokenPrice(mint, newPrice, inputAmount)
         }
 
-        showNotification(`Bought ${estimatedOutput.toFixed(2)} ${token.symbol}!`, 'success')
+        showNotification(
+          `Bought ${estimatedOutput.toFixed(2)} ${token.symbol}! Fee ${taxAmount.toFixed(4)} SOL`,
+          'success'
+        )
       } else {
         if (isPlatformToken) {
           await fetch(`/api/tokens/${mint}/sell`, {
@@ -235,11 +239,16 @@ export default function TokenPage() {
         }
 
         const newPrice = token.price * 0.99 // Price goes down on sell
+        const grossSol = estimateSellReturn(token.price, inputAmount)
+        const taxAmount = grossSol * (token.salesTax / 100)
         if (isPlatformToken) {
           updateTokenPrice(mint, newPrice, inputAmount * token.price)
         }
 
-        showNotification(`Sold ${amount} ${token.symbol} for ${estimatedOutput.toFixed(4)} SOL!`, 'success')
+        showNotification(
+          `Sold ${amount} ${token.symbol} for ${estimatedOutput.toFixed(4)} SOL! Fee ${taxAmount.toFixed(4)} SOL`,
+          'success'
+        )
       }
 
       // Reset form
