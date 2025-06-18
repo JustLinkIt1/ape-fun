@@ -122,7 +122,8 @@ export const QuickBuyModal: FC<QuickBuyModalProps> = ({ token, isOpen, onClose }
 
   if (!token) return null
 
-  const estimatedTokens = amount / token.price
+  const afterTax = amount * (1 - token.salesTax / 100)
+  const estimatedTokens = afterTax / token.price
   const totalWithSlippage = amount * (1 + slippage / 100)
 
   return (
@@ -234,11 +235,14 @@ export const QuickBuyModal: FC<QuickBuyModalProps> = ({ token, isOpen, onClose }
                       {estimatedTokens.toLocaleString()} {token.symbol}
                     </span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Max total</span>
-                    <span className="text-white font-medium">{totalWithSlippage.toFixed(2)} SOL</span>
-                  </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Max total</span>
+                  <span className="text-white font-medium">{totalWithSlippage.toFixed(2)} SOL</span>
                 </div>
+                <p className="text-xs text-blue-400 mt-2">
+                  Platform fee: {token.salesTax}% (deducted in SOL)
+                </p>
+              </div>
 
                 {/* Action Buttons */}
                 <div className="flex gap-3">
