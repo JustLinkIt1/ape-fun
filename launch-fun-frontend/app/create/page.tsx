@@ -18,7 +18,8 @@ export default function CreateToken() {
     symbol: '',
     description: '',
     totalSupply: 1000000000,
-    decimals: 9
+    decimals: 9,
+    initialBuy: 0
   })
   
   const [imageFile, setImageFile] = useState<File | null>(null)
@@ -33,7 +34,7 @@ export default function CreateToken() {
 
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'totalSupply' || name === 'decimals' ? Number(value) : value
+      [name]: ['totalSupply', 'decimals', 'initialBuy'].includes(name) ? Number(value) : value
     }))
   }
 
@@ -223,7 +224,8 @@ export default function CreateToken() {
           symbol: '',
           description: '',
           totalSupply: 1000000000,
-          decimals: 9
+          decimals: 9,
+          initialBuy: 0
         })
         removeImage()
       }
@@ -380,6 +382,21 @@ export default function CreateToken() {
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 transition-colors"
                   min="1"
+                />
+              </div>
+
+              {/* Buy initial amount */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Buy initial amount (SOL)
+                </label>
+                <input
+                  type="number"
+                  name="initialBuy"
+                  value={formData.initialBuy}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 transition-colors"
+                  min="0"
                 />
               </div>
 
