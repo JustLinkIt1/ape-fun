@@ -211,11 +211,35 @@ export default function CreateToken() {
           'success'
         )
         
-        // Open token page in new tab
-        window.open(`/token/${mintAddress}`, '_blank')
+        // Save token data to localStorage immediately
+        const tokenData = {
+          mint: mintAddress,
+          name: formData.name,
+          symbol: formData.symbol,
+          description: formData.description,
+          imageUrl: imageUrl || '',
+          creator: publicKey.toBase58(),
+          totalSupply: formData.totalSupply,
+          decimals: formData.decimals,
+          price: 0.000001,
+          priceChange24h: 0,
+          marketCap: 1000,
+          volume24h: 0,
+          holders: 1,
+          bondingCurveProgress: 0,
+          createdAt: new Date().toISOString(),
+          salesTax: 3
+        }
         
-        // Also open Solscan transaction
-        window.open(`https://solscan.io/tx/${signature}`, '_blank')
+        // Save to localStorage
+        const existingTokens = JSON.parse(localStorage.getItem('launch_fun_tokens') || '{}')
+        existingTokens[mintAddress] = tokenData
+        localStorage.setItem('launch_fun_tokens', JSON.stringify(existingTokens))
+        
+        // Redirect to token page after a short delay
+        setTimeout(() => {
+          window.location.href = `/token/${mintAddress}`
+        }, 2000) // Wait 2 seconds to show the success message
         
         // Reset form
         setFormData({

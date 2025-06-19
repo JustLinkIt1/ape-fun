@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// For production, you should use a proper IPFS service like Pinata, NFT.Storage, or Web3.Storage
-// This is a simple example using NFT.Storage (free tier available)
-const NFT_STORAGE_API_KEY = process.env.NFT_STORAGE_API_KEY || 'YOUR_API_KEY_HERE'
+const NFT_STORAGE_API_KEY = process.env.NFT_STORAGE_API_KEY
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,23 +14,36 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // For now, we'll use a placeholder URL
-    // In production, you would upload to IPFS here
-    // Example with NFT.Storage:
-    /*
-    const response = await fetch('https://api.nft.storage/upload', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${NFT_STORAGE_API_KEY}`,
-      },
-      body: file
-    })
+    // If NFT.Storage API key is configured, upload to IPFS
+    if (NFT_STORAGE_API_KEY && NFT_STORAGE_API_KEY !== 'YOUR_API_KEY_HERE') {
+      try {
+        const response = await fetch('https://api.nft.storage/upload', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${NFT_STORAGE_API_KEY}`,
+          },
+          body: file
+        })
+        
+        if (!response.ok) {
+          throw new Error(`NFT.Storage upload failed: ${response.statusText}`)
+        }
+        
+        const data = await response.json()
+        const ipfsUrl = `https://ipfs.io/ipfs/${data.value.cid}`
+        
+        return NextResponse.json({
+          success: true,
+          url: ipfsUrl,
+          cid: data.value.cid
+        })
+      } catch (error) {
+        console.error('NFT.Storage upload error:', error)
+        // Fall back to base64 if IPFS upload fails
+      }
+    }
     
-    const data = await response.json()
-    const ipfsUrl = `https://ipfs.io/ipfs/${data.value.cid}`
-    */
-    
-    // For testing, we'll convert to base64 data URL
+    // Fallback: convert to base64 data URL for testing
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
     const base64 = buffer.toString('base64')
@@ -41,7 +52,8 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({
       success: true,
-      url: dataUrl // In production, this would be the IPFS URL
+      url: dataUrl,
+      isDataUrl: true
     })
   } catch (error) {
     console.error('Upload error:', error)

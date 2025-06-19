@@ -7,10 +7,11 @@ import { Header } from '@/components/Header'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useWalletModal } from '@solana/wallet-adapter-react-ui'
 import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js'
-import { getPlatformToken, updateTokenPrice } from '@/lib/tokenRegistry'
+import { getPlatformToken, getPlatformTokens, updateTokenPrice } from '@/lib/tokenRegistry'
 import { estimateBuyTokens, estimateSellReturn } from '@/lib/bondingCurve'
 import * as Toast from '@radix-ui/react-toast'
 import { ArrowUpRight, ArrowDownRight, TrendingUp, Users, DollarSign, Activity } from 'lucide-react'
+import Link from 'next/link'
 
 // Mock tokens for demonstration
 const mockTokens: any[] = [
@@ -127,20 +128,112 @@ export default function TokenPage() {
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState<'success' | 'error'>('success')
+  const [slippage, setSlippage] = useState(0.01) // 1% default slippage
 
   // Fetch token data
   useEffect(() => {
-    // First check platform tokens
-    const tokenData = getPlatformToken(mint)
-    if (tokenData) {
-      setToken(tokenData)
-    } else {
-      // Check mock tokens as fallback
+    const fetchToken = async () => {
+      // First check platform tokens in local storage
+      const tokenData = getPlatformToken(mint)
+      if (tokenData) {
+        setToken(tokenData)
+        return
+      }
+      
+      // If not found locally, try to fetch on-chain data
+      try {
+        const connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed')
+        const mintPubkey = new PublicKey(mint)
+        
+        // Check if mint exists
+        const mintInfo = await connection.getParsedAccountInfo(mintPubkey)
+        if (mintInfo.value) {
+          const parsedData = mintInfo.value.data as any
+          const supply = parsedData.parsed?.info?.supply
+          const decimals = parsedData.parsed?.info?.decimals || 9
+          
+          // Create a basic token object from on-chain data
+          const onChainToken = {
+            mint: mint,
+            name: 'Unknown Token',
+            symbol: 'UNKNOWN',
+            price: 0.000001,
+            priceChange24h: 0,
+            marketCap: 1000,
+            volume24h: 0,
+            holders: 1,
+            imageUrl: '',
+            bondingCurveProgress: 0,
+            description: 'This token exists on-chain. Metadata is being loaded...',
+            creator: '',
+            createdAt: new Date().toISOString(),
+            totalSupply: parseInt(supply) / Math.pow(10, decimals),
+            decimals: decimals,
+            salesTax: 3
+          }
+          
+          setToken(onChainToken)
+          
+          // Try to get metadata
+          const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s')
+          const [metadataPDA] = PublicKey.findProgramAddressSync(
+            [
+              Buffer.from('metadata'),
+              TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+              mintPubkey.toBuffer(),
+            ],
+            TOKEN_METADATA_PROGRAM_ID
+          )
+          
+          const metadataAccount = await connection.getAccountInfo(metadataPDA)
+          if (metadataAccount && metadataAccount.data) {
+            // Decode metadata
+            const data = metadataAccount.data
+            let offset = 1 + 1 + 32 + 32 // Skip to name
+            
+            const nameBytes = data.slice(offset, offset + 32)
+            const name = nameBytes.toString('utf8').replace(/\0/g, '').trim()
+            offset += 32
+            
+            const symbolBytes = data.slice(offset, offset + 10)
+            const symbol = symbolBytes.toString('utf8').replace(/\0/g, '').trim()
+            
+            if (name || symbol) {
+              setToken((prev: any) => ({
+                ...prev,
+                name: name || prev.name,
+                symbol: symbol || prev.symbol
+              }))
+            }
+          }
+          return
+        }
+      } catch (error) {
+        console.error('Error fetching on-chain data:', error)
+      }
+      
+      // If not found locally, fetch from API
+      try {
+        const response = await fetch(`/api/tokens/${mint}`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.token) {
+            setToken(data.token)
+            return
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching token from API:', error)
+      }
+      
+      // Check mock tokens as final fallback
       const mockToken = mockTokens.find(t => t.mint === mint)
       if (mockToken) {
         setToken(mockToken)
       }
     }
+    
+    fetchToken()
   }, [mint])
 
   // Fetch SOL price
@@ -198,37 +291,92 @@ export default function TokenPage() {
     setIsTrading(true)
 
     try {
-      // In production, this would create actual swap transactions
-      // For now, we'll simulate the trade
       const inputAmount = parseFloat(amount)
       
-      if (tradeType === 'buy') {
-        // Simulate buying tokens
-        const newPrice = token.price * 1.01 // Price goes up on buy
+      // Call the appropriate API endpoint
+      const endpoint = tradeType === 'buy'
+        ? `/api/tokens/${mint}/buy`
+        : `/api/tokens/${mint}/sell`
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: inputAmount,
+          slippage: slippage * 100, // Convert to basis points
+          [tradeType === 'buy' ? 'buyer' : 'seller']: publicKey.toBase58()
+        })
+      })
 
-        const taxAmount = inputAmount * (token.salesTax / 100)
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Transaction failed')
+      }
 
-        // Only update price for platform tokens
-        const isPlatformToken = getPlatformToken(mint) !== null
-        if (isPlatformToken) {
-          updateTokenPrice(mint, newPrice, inputAmount)
+      const data = await response.json()
+      
+      // Sign and send the transaction
+      if (data.transaction) {
+        // Create connection
+        const rpcEndpoints = [
+          `https://mainnet.helius-rpc.com/?api-key=${process.env.NEXT_PUBLIC_HELIUS_API_KEY}`,
+          'https://api.mainnet-beta.solana.com',
+          'https://rpc.ankr.com/solana'
+        ]
+        
+        let connection: Connection | null = null
+        for (const endpoint of rpcEndpoints) {
+          try {
+            connection = new Connection(endpoint, 'confirmed')
+            await connection.getLatestBlockhash()
+            break
+          } catch (error) {
+            console.error(`Failed to connect to ${endpoint}:`, error)
+          }
         }
-
-        showNotification(`Bought ${estimatedOutput.toFixed(2)} ${token.symbol}! Fee ${taxAmount.toFixed(4)} SOL`, 'success')
-      } else {
-        // Simulate selling tokens
-        const newPrice = token.price * 0.99 // Price goes down on sell
-
-        const grossSol = estimateSellReturn(token.price, inputAmount)
-        const taxAmount = grossSol * (token.salesTax / 100)
-
-        // Only update price for platform tokens
-        const isPlatformToken = getPlatformToken(mint) !== null
-        if (isPlatformToken) {
-          updateTokenPrice(mint, newPrice, inputAmount * token.price)
+        
+        if (!connection) {
+          throw new Error('Failed to connect to Solana network')
         }
-
-        showNotification(`Sold ${amount} ${token.symbol} for ${estimatedOutput.toFixed(4)} SOL! Fee ${taxAmount.toFixed(4)} SOL`, 'success')
+        
+        const transaction = Transaction.from(Buffer.from(data.transaction, 'base64'))
+        
+        // Sign the transaction
+        const signedTx = await (window as any).solana.signTransaction(transaction)
+        
+        // Send the transaction
+        const signature = await connection.sendRawTransaction(signedTx.serialize(), {
+          skipPreflight: true,
+          preflightCommitment: 'confirmed',
+          maxRetries: 5
+        })
+        
+        console.log('Transaction sent:', signature)
+        
+        // Wait for confirmation
+        const confirmation = await connection.confirmTransaction(signature, 'confirmed')
+        
+        if (confirmation.value.err) {
+          throw new Error('Transaction failed')
+        }
+        
+        // Show success message
+        if (tradeType === 'buy') {
+          showNotification(
+            `Bought ${data.estimatedTokens?.toFixed(2) || estimatedOutput.toFixed(2)} ${token.symbol}! Fee: ${data.platformFee?.toFixed(4) || '0'} SOL`,
+            'success'
+          )
+        } else {
+          showNotification(
+            `Sold ${amount} ${token.symbol} for ${data.estimatedSol?.toFixed(4) || estimatedOutput.toFixed(4)} SOL! Fee: ${data.platformFee?.toFixed(4) || '0'} SOL`,
+            'success'
+          )
+        }
+        
+        // Open transaction on Solscan
+        window.open(`https://solscan.io/tx/${signature}`, '_blank')
       }
 
       // Reset form
@@ -238,28 +386,50 @@ export default function TokenPage() {
       const updatedToken = getPlatformToken(mint)
       if (updatedToken) {
         setToken(updatedToken)
-      } else {
-        // For mock tokens, simulate price change
-        const mockToken = mockTokens.find(t => t.mint === mint)
-        if (mockToken) {
-          mockToken.price = tradeType === 'buy' ? mockToken.price * 1.01 : mockToken.price * 0.99
-          setToken({...mockToken})
-        }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Trade error:', error)
-      showNotification('Trade failed. Please try again.', 'error')
+      showNotification(error.message || 'Trade failed. Please try again.', 'error')
     } finally {
       setIsTrading(false)
     }
   }
+
+  // Create a loading state while fetching token
+  useEffect(() => {
+    if (!token) {
+      // If no token found, create a temporary token for display
+      const tempToken = {
+        mint: mint,
+        name: 'Loading...',
+        symbol: '...',
+        price: 0.000001,
+        priceChange24h: 0,
+        marketCap: 1000,
+        volume24h: 0,
+        holders: 1,
+        imageUrl: '',
+        bondingCurveProgress: 0,
+        description: 'Token data is loading. If this is a new token, data will be available shortly.',
+        creator: '',
+        createdAt: new Date().toISOString(),
+        totalSupply: 1000000000,
+        decimals: 9,
+        salesTax: 3
+      }
+      setToken(tempToken)
+    }
+  }, [mint, token])
 
   if (!token) {
     return (
       <main className="min-h-screen bg-gradient-to-br from-black via-yellow-900/20 to-black">
         <Header />
         <div className="flex items-center justify-center min-h-[80vh]">
-          <p className="text-gray-400">Token not found</p>
+          <div className="text-center">
+            <div className="animate-spin h-12 w-12 border-4 border-yellow-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-gray-400">Loading token data...</p>
+          </div>
         </div>
       </main>
     )
@@ -312,6 +482,27 @@ export default function TokenPage() {
                   </div>
                 </div>
 
+                {/* Creator Info */}
+                <div className="mb-6 p-4 bg-gray-700/30 rounded-xl">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-400">Created by</span>
+                    <Link
+                      href={`/portfolio/${token.creator}`}
+                      className="text-yellow-400 hover:text-yellow-300 transition-colors font-mono text-sm"
+                    >
+                      {token.creator ? `${token.creator.slice(0, 4)}...${token.creator.slice(-4)}` : 'Unknown'}
+                    </Link>
+                  </div>
+                  {token.createdAt && (
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-sm text-gray-400">Created</span>
+                      <span className="text-sm text-gray-300">
+                        {new Date(token.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
                 {/* Stats Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                   <div className="bg-gray-700/30 rounded-xl p-4">
@@ -353,7 +544,7 @@ export default function TokenPage() {
                 )}
 
                 {/* Bonding Curve Progress */}
-                <div>
+                <div className="mb-8">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-sm text-gray-400">Bonding Curve Progress</span>
                     <span className="text-sm text-white">{token.bondingCurveProgress}%</span>
@@ -366,6 +557,139 @@ export default function TokenPage() {
                   </div>
                   <p className="text-xs text-gray-500 mt-2">
                     Raydium listing at 69k market cap
+                  </p>
+                </div>
+
+                {/* Raydium Chart */}
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-4">Price Chart</h3>
+                  <div className="bg-gray-900/50 rounded-xl p-4 border border-gray-700">
+                    {token.bondingCurveProgress >= 100 ? (
+                      // Token has graduated to Raydium - show Raydium chart
+                      <div className="relative w-full h-[400px]">
+                        <iframe
+                          src={`https://dexscreener.com/solana/${mint}?embed=1&theme=dark&trades=0&info=0`}
+                          className="w-full h-full rounded-lg"
+                          frameBorder="0"
+                          allowFullScreen
+                        />
+                        <div className="absolute bottom-2 right-2">
+                          <a
+                            href={`https://raydium.io/swap/?inputCurrency=sol&outputCurrency=${mint}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-yellow-400 hover:text-yellow-300 transition-colors"
+                          >
+                            Trade on Raydium →
+                          </a>
+                        </div>
+                      </div>
+                    ) : (
+                      // Token is still in bonding curve - show simple price chart
+                      <div className="flex items-center justify-center h-[400px] text-gray-500">
+                        <div className="text-center">
+                          <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                          <p className="text-sm">Price chart will be available after Raydium listing</p>
+                          <p className="text-xs mt-2">Current progress: {token.bondingCurveProgress}% to graduation</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-4 flex gap-4 text-sm">
+                    <a
+                      href={`https://solscan.io/token/${mint}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-yellow-400 hover:text-yellow-300 transition-colors"
+                    >
+                      View on Solscan →
+                    </a>
+                    {token.bondingCurveProgress >= 100 && (
+                      <a
+                        href={`https://dexscreener.com/solana/${mint}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-yellow-400 hover:text-yellow-300 transition-colors"
+                      >
+                        View on DexScreener →
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Trade History */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700 mt-8"
+              >
+                <h3 className="text-lg font-semibold text-white mb-4">Recent Trades</h3>
+                <div className="space-y-3">
+                  {/* Mock trade history - in production this would come from blockchain events */}
+                  {[
+                    { type: 'buy', wallet: '8xKp...3nFa', amount: 1250000, price: 0.00045, time: '2 min ago', txn: 'abc123' },
+                    { type: 'sell', wallet: '4mNx...9kLp', amount: 500000, price: 0.00044, time: '5 min ago', txn: 'def456' },
+                    { type: 'buy', wallet: '7pQr...2mXs', amount: 2000000, price: 0.00043, time: '12 min ago', txn: 'ghi789' },
+                    { type: 'buy', wallet: '3tAQ...gewi', amount: 750000, price: 0.00042, time: '18 min ago', txn: 'jkl012' },
+                    { type: 'sell', wallet: '9vLm...8nKj', amount: 300000, price: 0.00041, time: '25 min ago', txn: 'mno345' },
+                  ].map((trade, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg hover:bg-gray-700/50 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                          trade.type === 'buy' ? 'bg-green-500/20' : 'bg-red-500/20'
+                        }`}>
+                          {trade.type === 'buy' ? (
+                            <ArrowUpRight className="w-4 h-4 text-green-400" />
+                          ) : (
+                            <ArrowDownRight className="w-4 h-4 text-red-400" />
+                          )}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <Link
+                              href={`/portfolio/${trade.wallet}`}
+                              className="text-yellow-400 hover:text-yellow-300 transition-colors font-mono text-sm"
+                            >
+                              {trade.wallet}
+                            </Link>
+                            <span className={`text-xs font-medium ${
+                              trade.type === 'buy' ? 'text-green-400' : 'text-red-400'
+                            }`}>
+                              {trade.type === 'buy' ? 'bought' : 'sold'}
+                            </span>
+                            <span className="text-white font-medium">
+                              {(trade.amount / 1000000).toFixed(2)}M
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-gray-400">
+                            <span>{trade.time}</span>
+                            <span>•</span>
+                            <span>{trade.price.toFixed(8)} SOL</span>
+                            <span>•</span>
+                            <a
+                              href={`https://solscan.io/tx/${trade.txn}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-yellow-400 hover:text-yellow-300"
+                            >
+                              View TX
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-white font-medium">
+                          ${((trade.amount / 1000000) * trade.price * solPrice).toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 text-center">
+                  <p className="text-xs text-gray-500">
+                    Trade history updates in real-time • Click any wallet to view their portfolio
                   </p>
                 </div>
               </motion.div>
