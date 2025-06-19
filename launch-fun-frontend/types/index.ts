@@ -11,6 +11,7 @@ export interface Token {
   holders: number
   imageUrl: string
   bondingCurveProgress?: number
+  salesTax: number
 }
 
 // Additional types for the application

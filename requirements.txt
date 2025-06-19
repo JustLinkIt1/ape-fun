@@ -5,6 +5,7 @@ anchorpy==0.18.0
 base58==2.1.1
 requests==2.31.0
 python-dotenv==1.0.0
+mpl-token-metadata==1.13.2
 
 # Additional dependencies for production
 web3==6.11.3  # For cross-chain features
