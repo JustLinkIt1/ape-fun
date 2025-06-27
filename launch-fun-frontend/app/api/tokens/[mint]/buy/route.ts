@@ -7,13 +7,15 @@ import {
   createSyncNativeInstruction,
   NATIVE_MINT
 } from '@solana/spl-token'
-import { getPlatformToken, updateTokenPrice } from '@/lib/tokenRegistry'
+import { updateTokenPrice } from '@/lib/tokenRegistry'
+import { getServerToken } from '@/lib/serverTokenRegistry'
 import {
   getInitialBondingCurveState,
   estimateBuyTokensWithState,
   applyBuy,
   getCurrentPrice
 } from '@/lib/bondingCurve'
+import { logTrade } from '@/lib/tradeRegistry'
 
 // Platform configuration
 const PLATFORM_CONFIG = {
@@ -39,8 +41,8 @@ export async function POST(request: NextRequest, context: any) {
       )
     }
     
-    // Get token info from registry
-    const token = getPlatformToken(params.mint)
+    // Get token info from server registry
+    const token = getServerToken(params.mint)
     if (!token) {
       return NextResponse.json(
         { error: 'Token not found' },
@@ -155,6 +157,17 @@ export async function POST(request: NextRequest, context: any) {
     const newState = applyBuy(bondingState, solAfterFee, buyResult.tokensOut)
     const newPrice = getCurrentPrice(newState)
     updateTokenPrice(params.mint, newPrice, solAmountLamports / LAMPORTS_PER_SOL)
+    
+    // Log the trade
+    logTrade({
+      mint: params.mint,
+      type: 'buy',
+      user: buyer,
+      amount: amount, // in SOL
+      tokens: buyResult.tokensOut / Math.pow(10, token.decimals),
+      price: buyResult.finalPrice,
+      timestamp: Date.now()
+    })
     
     // Return transaction for user to sign
     return NextResponse.json({

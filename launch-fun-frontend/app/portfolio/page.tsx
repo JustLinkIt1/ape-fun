@@ -7,7 +7,7 @@ import { useWallet } from '@solana/wallet-adapter-react'
 import { useWalletModal } from '@solana/wallet-adapter-react-ui'
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { TOKEN_PROGRAM_ID, getAccount, getMint } from '@solana/spl-token'
-import { getAllPlatformTokens, getTokensByCreator } from '@/lib/tokenRegistry'
+import { getAllPlatformTokens, getTokensByCreator, savePlatformToken } from '@/lib/tokenRegistry'
 import Link from 'next/link'
 
 interface TokenHolding {
@@ -22,6 +22,25 @@ interface TokenHolding {
   imageUrl?: string
 }
 
+interface CreatedToken {
+  mint: string
+  symbol: string
+  name: string
+  description: string
+  imageUrl: string
+  creator: string
+  totalSupply: number
+  decimals: number
+  price: number
+  marketCap: number
+  volume24h: number
+  holders: number
+  priceChange24h: number
+  bondingCurveProgress: number
+  createdAt: string
+  salesTax: number
+}
+
 export default function Portfolio() {
   const { publicKey } = useWallet()
   const { setVisible } = useWalletModal()
@@ -33,7 +52,47 @@ export default function Portfolio() {
   const [totalValueUSD, setTotalValueUSD] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
-  const [createdTokens, setCreatedTokens] = useState<any[]>([])
+  const [createdTokens, setCreatedTokens] = useState<CreatedToken[]>([])
+  const [isLoadingCreated, setIsLoadingCreated] = useState(false)
+
+  // Sync tokens from server to client
+  const syncTokensFromServer = async () => {
+    try {
+      const response = await fetch('/api/tokens/sync')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.tokens) {
+          // Save each token to client-side storage
+          data.tokens.forEach((token: any) => {
+            savePlatformToken(token)
+          })
+          console.log(`Synced ${data.count} tokens from server`)
+        }
+      }
+    } catch (error) {
+      console.error('Error syncing tokens from server:', error)
+    }
+  }
+
+  // Fetch tokens created by the current wallet
+  const fetchCreatedTokens = async () => {
+    if (!publicKey) return
+
+    setIsLoadingCreated(true)
+    try {
+      const response = await fetch(`/api/tokens/creator/${publicKey.toBase58()}`)
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          setCreatedTokens(data.tokens)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching created tokens:', error)
+    } finally {
+      setIsLoadingCreated(false)
+    }
+  }
 
   // Fetch SOL price
   const fetchSolPrice = async () => {
@@ -141,15 +200,14 @@ export default function Portfolio() {
   // Initial load
   useEffect(() => {
     fetchSolPrice()
+    syncTokensFromServer()
   }, [])
 
   // Fetch holdings when wallet connects or SOL price updates
   useEffect(() => {
     if (publicKey && solPrice > 0) {
       fetchHoldings()
-      // Also fetch tokens created by this wallet
-      const created = getTokensByCreator(publicKey.toBase58())
-      setCreatedTokens(created)
+      fetchCreatedTokens()
     }
   }, [publicKey, solPrice])
 
@@ -159,6 +217,7 @@ export default function Portfolio() {
       const interval = setInterval(() => {
         fetchSolPrice()
         fetchHoldings()
+        fetchCreatedTokens()
       }, 30000)
       
       return () => clearInterval(interval)
@@ -267,11 +326,105 @@ export default function Portfolio() {
           </div>
         </motion.div>
 
-        {/* Holdings Table */}
+        {/* Created Tokens Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
+          className="bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700 overflow-hidden mb-8"
+        >
+          <div className="px-6 py-4 border-b border-gray-700 flex justify-between items-center">
+            <h2 className="text-xl font-bold text-white">Tokens You Created</h2>
+            <button
+              onClick={() => {
+                fetchCreatedTokens()
+              }}
+              disabled={isLoadingCreated}
+              className="px-4 py-2 bg-yellow-500/20 text-yellow-400 rounded-lg hover:bg-yellow-500/30 transition-colors disabled:opacity-50"
+            >
+              {isLoadingCreated ? 'Refreshing...' : 'Refresh'}
+            </button>
+          </div>
+
+          {isLoadingCreated && createdTokens.length === 0 ? (
+            <div className="p-12 text-center">
+              <div className="animate-spin h-12 w-12 border-4 border-yellow-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+              <p className="text-gray-400">Loading your created tokens...</p>
+            </div>
+          ) : createdTokens.length === 0 ? (
+            <div className="p-12 text-center">
+              <p className="text-gray-400 mb-4">No tokens created yet</p>
+              <p className="text-sm text-gray-500">Create your first token to see it here!</p>
+              <Link
+                href="/create"
+                className="inline-block mt-4 px-6 py-2 bg-yellow-500 text-black rounded-lg hover:bg-yellow-400 transition-colors"
+              >
+                Create Token
+              </Link>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-700">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Token</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Price (SOL)</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Market Cap</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Holders</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Created</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-700">
+                  {createdTokens.map((token) => (
+                    <tr key={token.mint} className="hover:bg-gray-700/30 transition-colors cursor-pointer">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Link href={`/token/${token.mint}`} className="flex items-center group">
+                          {token.imageUrl && (
+                            <img
+                              src={token.imageUrl}
+                              alt={token.symbol}
+                              className="w-8 h-8 rounded-full mr-3"
+                            />
+                          )}
+                          <div>
+                            <p className="text-white font-medium group-hover:text-yellow-400 transition-colors">{token.symbol}</p>
+                            <p className="text-sm text-gray-400">{token.name}</p>
+                          </div>
+                        </Link>
+                      </td>
+                      <td className="px-6 py-4 text-right text-white">
+                        <Link href={`/token/${token.mint}`}>
+                          {formatNumber(token.price, 8)}
+                        </Link>
+                      </td>
+                      <td className="px-6 py-4 text-right text-gray-300">
+                        <Link href={`/token/${token.mint}`}>
+                          {formatUSD(token.marketCap)}
+                        </Link>
+                      </td>
+                      <td className="px-6 py-4 text-right text-white">
+                        <Link href={`/token/${token.mint}`}>
+                          {token.holders}
+                        </Link>
+                      </td>
+                      <td className="px-6 py-4 text-right text-gray-300">
+                        <Link href={`/token/${token.mint}`}>
+                          {new Date(token.createdAt).toLocaleDateString()}
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </motion.div>
+
+        {/* Holdings Table */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
           className="bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700 overflow-hidden"
         >
           <div className="px-6 py-4 border-b border-gray-700 flex justify-between items-center">

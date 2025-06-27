@@ -7,11 +7,14 @@ import { Header } from '@/components/Header'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useWalletModal } from '@solana/wallet-adapter-react-ui'
 import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js'
-import { getPlatformToken, getPlatformTokens, updateTokenPrice } from '@/lib/tokenRegistry'
+import { getPlatformToken, getPlatformTokens, updateTokenPrice, savePlatformToken } from '@/lib/tokenRegistry'
+import { getMint, getAccount } from '@solana/spl-token'
 import { estimateBuyTokens, estimateSellReturn } from '@/lib/bondingCurve'
 import * as Toast from '@radix-ui/react-toast'
 import { ArrowUpRight, ArrowDownRight, TrendingUp, Users, DollarSign, Activity } from 'lucide-react'
 import Link from 'next/link'
+import { getAssociatedTokenAddress } from '@solana/spl-token'
+import { TOKEN_PROGRAM_ID } from '@solana/spl-token'
 
 // Mock tokens for demonstration
 const mockTokens: any[] = [
@@ -129,29 +132,37 @@ export default function TokenPage() {
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState<'success' | 'error'>('success')
   const [slippage, setSlippage] = useState(0.01) // 1% default slippage
+  const [userTokenBalance, setUserTokenBalance] = useState<number | null>(null)
+  const [userSolBalance, setUserSolBalance] = useState<number | null>(null)
 
   // Fetch token data
   useEffect(() => {
     const fetchToken = async () => {
-      // First check platform tokens in local storage
-      const tokenData = getPlatformToken(mint)
-      if (tokenData) {
-        setToken(tokenData)
-        return
+      // Always try backend API first for all users
+      try {
+        const response = await fetch(`/api/tokens/${mint}`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.token) {
+            setToken(data.token)
+            // Optionally: savePlatformToken(data.token) // for caching
+            return
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching token from API:', error)
       }
-      
-      // If not found locally, try to fetch on-chain data
+
+      // If not found via API, try to fetch on-chain data
       try {
         const connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed')
         const mintPubkey = new PublicKey(mint)
-        
         // Check if mint exists
         const mintInfo = await connection.getParsedAccountInfo(mintPubkey)
         if (mintInfo.value) {
           const parsedData = mintInfo.value.data as any
           const supply = parsedData.parsed?.info?.supply
           const decimals = parsedData.parsed?.info?.decimals || 9
-          
           // Create a basic token object from on-chain data
           const onChainToken = {
             mint: mint,
@@ -171,9 +182,7 @@ export default function TokenPage() {
             decimals: decimals,
             salesTax: 3
           }
-          
           setToken(onChainToken)
-          
           // Try to get metadata
           const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s')
           const [metadataPDA] = PublicKey.findProgramAddressSync(
@@ -184,20 +193,16 @@ export default function TokenPage() {
             ],
             TOKEN_METADATA_PROGRAM_ID
           )
-          
           const metadataAccount = await connection.getAccountInfo(metadataPDA)
           if (metadataAccount && metadataAccount.data) {
             // Decode metadata
             const data = metadataAccount.data
             let offset = 1 + 1 + 32 + 32 // Skip to name
-            
             const nameBytes = data.slice(offset, offset + 32)
             const name = nameBytes.toString('utf8').replace(/\0/g, '').trim()
             offset += 32
-            
             const symbolBytes = data.slice(offset, offset + 10)
             const symbol = symbolBytes.toString('utf8').replace(/\0/g, '').trim()
-            
             if (name || symbol) {
               setToken((prev: any) => ({
                 ...prev,
@@ -211,28 +216,13 @@ export default function TokenPage() {
       } catch (error) {
         console.error('Error fetching on-chain data:', error)
       }
-      
-      // If not found locally, fetch from API
-      try {
-        const response = await fetch(`/api/tokens/${mint}`)
-        if (response.ok) {
-          const data = await response.json()
-          if (data.success && data.token) {
-            setToken(data.token)
-            return
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching token from API:', error)
-      }
-      
+
       // Check mock tokens as final fallback
       const mockToken = mockTokens.find(t => t.mint === mint)
       if (mockToken) {
         setToken(mockToken)
       }
     }
-    
     fetchToken()
   }, [mint])
 
@@ -270,6 +260,54 @@ export default function TokenPage() {
       setEstimatedOutput(afterTax)
     }
   }, [amount, token, tradeType])
+
+  // Fetch user's token balance when wallet or token changes
+  useEffect(() => {
+    const fetchTokenBalance = async () => {
+      if (!publicKey || !token) {
+        setUserTokenBalance(null)
+        return
+      }
+      try {
+        const connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed')
+        const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
+          publicKey,
+          { programId: TOKEN_PROGRAM_ID }
+        )
+        let found = false
+        for (const { account } of tokenAccounts.value) {
+          const parsedInfo = account.data.parsed.info
+          if (parsedInfo.mint === token.mint) {
+            setUserTokenBalance(parsedInfo.tokenAmount.uiAmount)
+            found = true
+            break
+          }
+        }
+        if (!found) setUserTokenBalance(0)
+      } catch (err) {
+        setUserTokenBalance(null)
+      }
+    }
+    fetchTokenBalance()
+  }, [publicKey, token])
+
+  // Fetch user's SOL balance when wallet changes
+  useEffect(() => {
+    const fetchSolBalance = async () => {
+      if (!publicKey) {
+        setUserSolBalance(null)
+        return
+      }
+      try {
+        const connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed')
+        const balanceLamports = await connection.getBalance(publicKey)
+        setUserSolBalance(balanceLamports / LAMPORTS_PER_SOL)
+      } catch (err) {
+        setUserSolBalance(null)
+      }
+    }
+    fetchSolBalance()
+  }, [publicKey])
 
   const showNotification = (message: string, type: 'success' | 'error') => {
     setToastMessage(message)
@@ -734,8 +772,54 @@ export default function TokenPage() {
                   <label className="block text-sm text-gray-400 mb-2">
                     {tradeType === 'buy' ? 'SOL Amount' : `${token.symbol} Amount`}
                   </label>
+                  {tradeType === 'buy' && (
+                    <div className="mb-2">
+                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                        <span>SOL Balance:</span>
+                        <span className="text-white font-mono">{userSolBalance !== null ? userSolBalance.toLocaleString(undefined, { maximumFractionDigits: 4 }) : '—'}</span>
+                        <button
+                          type="button"
+                          className="ml-4 px-2 py-1 bg-gray-700 rounded text-xs hover:bg-yellow-600/30"
+                          onClick={() => userSolBalance !== null && setAmount((userSolBalance * 0.25).toFixed(4))}
+                        >25%</button>
+                        <button
+                          type="button"
+                          className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-yellow-600/30"
+                          onClick={() => userSolBalance !== null && setAmount((userSolBalance * 0.5).toFixed(4))}
+                        >50%</button>
+                        <button
+                          type="button"
+                          className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-yellow-600/30"
+                          onClick={() => userSolBalance !== null && setAmount(userSolBalance.toFixed(4))}
+                        >100%</button>
+                      </div>
+                    </div>
+                  )}
+                  {tradeType === 'sell' && (
+                    <div className="mb-2">
+                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                        <span>{token.symbol} Balance:</span>
+                        <span className="text-white font-mono">{userTokenBalance !== null ? userTokenBalance.toLocaleString(undefined, { maximumFractionDigits: token?.decimals || 9 }) : '—'}</span>
+                        <button
+                          type="button"
+                          className="ml-4 px-2 py-1 bg-gray-700 rounded text-xs hover:bg-yellow-600/30"
+                          onClick={() => userTokenBalance !== null && setAmount((userTokenBalance * 0.25).toFixed(token?.decimals || 9))}
+                        >25%</button>
+                        <button
+                          type="button"
+                          className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-yellow-600/30"
+                          onClick={() => userTokenBalance !== null && setAmount((userTokenBalance * 0.5).toFixed(token?.decimals || 9))}
+                        >50%</button>
+                        <button
+                          type="button"
+                          className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-yellow-600/30"
+                          onClick={() => userTokenBalance !== null && setAmount(userTokenBalance.toFixed(token?.decimals || 9))}
+                        >100%</button>
+                      </div>
+                    </div>
+                  )}
                   <input
-                    type="number"
+                    type="text"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="0.0"

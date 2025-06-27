@@ -117,8 +117,10 @@ async function uploadMetadataToIPFS(metadata: any): Promise<string> {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('[Token Creation] Received request');
     const body = await request.json()
-    const { name, symbol, description, totalSupply, decimals, imageUrl, creator } = body
+    let { name, symbol, description, totalSupply, decimals, imageUrl, creator } = body
+    console.log('[Token Creation] Parsed body:', body);
 
     // Validate input
     if (!name || !symbol || !creator) {
@@ -126,6 +128,57 @@ export async function POST(request: NextRequest) {
         { error: 'Missing required fields' },
         { status: 400 }
       )
+    }
+
+    // --- IMAGE UPLOAD HANDLING ---
+    let finalImageUrl = imageUrl;
+    if (imageUrl && !imageUrl.startsWith('https://ipfs.io/ipfs/')) {
+      // If imageUrl is a data URL or not an IPFS link, upload to IPFS
+      console.log('[Token Creation] Uploading image to IPFS...');
+      try {
+        // Convert data URL to Blob if needed
+        let imageBlob;
+        if (imageUrl.startsWith('data:')) {
+          const matches = imageUrl.match(/^data:(.+);base64,(.*)$/);
+          if (!matches) throw new Error('Invalid data URL for image');
+          const mimeType = matches[1];
+          const base64Data = matches[2];
+          const buffer = Buffer.from(base64Data, 'base64');
+          imageBlob = new Blob([buffer], { type: mimeType });
+        } else {
+          // If it's a URL but not IPFS, try to fetch and re-upload
+          const response = await fetch(imageUrl);
+          const arrayBuffer = await response.arrayBuffer();
+          imageBlob = new Blob([arrayBuffer]);
+        }
+        const NFT_STORAGE_API_KEY = process.env.NFT_STORAGE_API_KEY;
+        if (!NFT_STORAGE_API_KEY || NFT_STORAGE_API_KEY === 'YOUR_API_KEY_HERE') {
+          throw new Error('NFT.Storage API key not set');
+        }
+        const response = await fetch('https://api.nft.storage/upload', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${NFT_STORAGE_API_KEY}`,
+          },
+          body: imageBlob
+        });
+        if (!response.ok) {
+          throw new Error(`NFT.Storage upload failed: ${response.statusText}`);
+        }
+        const data = await response.json();
+        finalImageUrl = `https://ipfs.io/ipfs/${data.value.cid}`;
+        console.log('[Token Creation] Image uploaded to IPFS:', finalImageUrl);
+      } catch (err) {
+        console.error('[Token Creation] Failed to upload image to IPFS:', err);
+        let message = 'Unknown error';
+        if (err instanceof Error) message = err.message;
+        return NextResponse.json(
+          { error: 'Failed to upload image to IPFS', details: message },
+          { status: 500 }
+        );
+      }
+    } else {
+      console.log('[Token Creation] Using provided imageUrl:', imageUrl);
     }
 
     // Create connection to Solana mainnet with fallback RPC endpoints
@@ -143,26 +196,25 @@ export async function POST(request: NextRequest) {
     for (const endpoint of rpcEndpoints) {
       try {
         connection = new Connection(endpoint, 'confirmed')
-        // Test the connection
         await connection.getLatestBlockhash()
-        console.log(`Connected to RPC: ${endpoint}`)
+        console.log(`[Token Creation] Connected to RPC: ${endpoint}`)
         rpcEndpoint = endpoint
         break
       } catch (error) {
-        console.error(`Failed to connect to ${endpoint}:`, error)
+        console.error(`[Token Creation] Failed to connect to ${endpoint}:`, error)
         lastError = error
       }
     }
     
     if (!connection) {
+      console.error('[Token Creation] Could not connect to any RPC endpoint. Last error:', lastError);
       throw new Error(`Failed to connect to any RPC endpoint. Last error: ${lastError?.message}`)
     }
     
     // Generate mint keypair
     const mintKeypair = Keypair.generate()
-
     const mint = mintKeypair.publicKey
-    console.log(`Token mint address: ${mint.toBase58()}`)
+    console.log('[Token Creation] Generated mint keypair:', mint.toBase58())
     
     // Parse creator public key
     const creatorPubkey = new PublicKey(creator)
@@ -193,10 +245,13 @@ export async function POST(request: NextRequest) {
       bondingCurvePool
     )
     
+    console.log('[Token Creation] Creator token account:', creatorTokenAccount.toBase58());
+    console.log('[Token Creation] Bonding curve token account:', bondingCurveTokenAccount.toBase58());
     
     // Get minimum balance for rent exemption
     const mintSpace = 82 // Size of mint account
     const mintRent = await connection.getMinimumBalanceForRentExemption(mintSpace)
+    console.log('[Token Creation] Mint rent:', mintRent);
     
     // Create transaction
     const transaction = new Transaction()
@@ -291,18 +346,20 @@ export async function POST(request: NextRequest) {
     
     // Create metadata JSON
     const tokenMetadata = {
-      name: name,
-      symbol: symbol,
-      description: description || '',
-      image: imageUrl || '',
+      name,
+      symbol,
+      description,
+      image: finalImageUrl,
       external_url: `https://launch.fun/token/${mint.toBase58()}`,
       attributes: [],
       properties: {
-        files: imageUrl ? [{
-          uri: imageUrl,
-          type: "image/png"
-        }] : [],
-        category: "image",
+        files: [
+          {
+            uri: finalImageUrl,
+            type: 'image/png', // or detect from mimeType if needed
+          },
+        ],
+        category: 'image',
         creators: [{
           address: creator,
           share: 100
@@ -317,12 +374,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Upload metadata to IPFS
+    console.log('[Token Creation] Uploading metadata to IPFS...');
     const metadataUri = await uploadMetadataToIPFS({
       ...tokenMetadata,
       mint: mint.toBase58()
     })
-    
-    console.log('Metadata URI:', metadataUri)
+    console.log('[Token Creation] Metadata URI:', metadataUri);
     
     // Create metadata account - this must come AFTER mint initialization and BEFORE removing mint authority
     const [metadataPDA] = PublicKey.findProgramAddressSync(
@@ -383,7 +440,7 @@ export async function POST(request: NextRequest) {
       decimals,
       totalSupply,
       description: description || '',
-      imageUrl: imageUrl || '',
+      imageUrl: finalImageUrl || '',
       creator: creator,
       createdAt: new Date().toISOString(),
       price: 0.000001, // Initial price
@@ -418,7 +475,7 @@ export async function POST(request: NextRequest) {
       }
     })
   } catch (error: any) {
-    console.error('Error creating token:', error)
+    console.error('[Token Creation] Error:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to create token' },
       { status: 500 }

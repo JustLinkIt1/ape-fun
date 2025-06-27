@@ -258,6 +258,22 @@ export default function CreateToken() {
         existingTokens[mintAddress] = tokenData
         localStorage.setItem('launch_fun_tokens', JSON.stringify(existingTokens))
         
+        // Also sync to server registry
+        try {
+          await fetch('/api/tokens/sync', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              tokens: [tokenData]
+            })
+          })
+          console.log('Token synced to server registry')
+        } catch (error) {
+          console.error('Failed to sync token to server:', error)
+        }
+        
         // Redirect to token page after a short delay
         setTimeout(() => {
           window.location.href = `/token/${mintAddress}`

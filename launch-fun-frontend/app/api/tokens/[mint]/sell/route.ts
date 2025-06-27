@@ -6,7 +6,9 @@ import {
   getAssociatedTokenAddress,
   createTransferInstruction
 } from '@solana/spl-token'
-import { getPlatformToken, updateTokenPrice } from '@/lib/tokenRegistry'
+import { updateTokenPrice } from '@/lib/tokenRegistry'
+import { getServerToken } from '@/lib/serverTokenRegistry'
+import { logTrade } from '@/lib/tradeRegistry'
 import { 
   getInitialBondingCurveState, 
   estimateSellReturnWithState,
@@ -34,8 +36,8 @@ export async function POST(request: NextRequest, context: any) {
       )
     }
     
-    // Get token info from registry
-    const token = getPlatformToken(params.mint)
+    // Get token info from server registry
+    const token = getServerToken(params.mint)
     if (!token) {
       return NextResponse.json(
         { error: 'Token not found' },
@@ -166,6 +168,17 @@ export async function POST(request: NextRequest, context: any) {
     const newState = applySell(bondingState, tokenAmountRaw, sellResult.solOut)
     const newPrice = getCurrentPrice(newState)
     updateTokenPrice(params.mint, newPrice, sellResult.solOut / LAMPORTS_PER_SOL)
+    
+    // Log the trade
+    logTrade({
+      mint: params.mint,
+      type: 'sell',
+      user: seller,
+      amount: amount, // in tokens
+      tokens: amount, // tokens sold
+      price: sellResult.finalPrice,
+      timestamp: Date.now()
+    })
     
     // Return transaction for user to sign
     return NextResponse.json({
