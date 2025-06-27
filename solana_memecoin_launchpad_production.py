@@ -7,6 +7,7 @@ import os
 import json
 import time
 import base64
+import struct
 from typing import Optional, Dict, Any, List, Tuple
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -16,7 +17,7 @@ from solana.rpc.api import Client
 from solana.rpc.commitment import Confirmed
 from solana.keypair import Keypair
 from solana.publickey import PublicKey
-from solana.transaction import Transaction
+from solana.transaction import Transaction, TransactionInstruction, AccountMeta
 from solana.system_program import SYS_PROGRAM_ID, SYSVAR_RENT_PUBKEY, transfer, TransferParams
 from spl.token.constants import TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID
 from spl.token.instructions import (
@@ -35,6 +36,9 @@ from spl.token.instructions import (
 METAPLEX_METADATA_PROGRAM_ID = PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s")
 RAYDIUM_AMM_PROGRAM_ID = PublicKey("675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8")
 RAYDIUM_OPENBOOK_PROGRAM_ID = PublicKey("srmqPvymJeFKQ4zGQed1GFppgkRHL9kaELCbyksJtPX")
+
+# Instruction discriminator for CreateMetadataAccountV3
+CREATE_METADATA_V3_DISCRIMINATOR = bytes([33, 57, 6, 167, 15, 219, 35, 251])
 
 # Production RPC endpoints
 MAINNET_RPC_ENDPOINTS = [
@@ -577,32 +581,74 @@ class ProductionMemecoinLaunchpad:
         metadata: TokenMetadata,
         is_mutable: bool = True,
     ):
-        """Create Metaplex metadata instruction using official library"""
+        """Create Metaplex metadata instruction manually"""
+        
+        # Encode the metadata data
+        name_bytes = metadata.name.encode('utf-8')
+        symbol_bytes = metadata.symbol.encode('utf-8')
+        uri_bytes = metadata.uri.encode('utf-8')
+        
+        # Data structure for CreateMetadataAccountV3
+        # Reference: https://github.com/metaplex-foundation/metaplex-program-library/blob/main/token-metadata/program/src/instruction.rs
+        
+        # Instruction data layout:
+        # - discriminator (8 bytes)
+        # - data (variable length)
+        #   - name length (4 bytes) + name (variable)
+        #   - symbol length (4 bytes) + symbol (variable)
+        #   - uri length (4 bytes) + uri (variable)
+        #   - seller_fee_basis_points (2 bytes)
+        #   - creators (variable, null for None)
+        #   - collection (variable, null for None)
+        #   - uses (variable, null for None)
+        # - is_mutable (1 byte)
+        # - collection_details (variable, null for None)
+        
+        data = bytearray()
+        data.extend(CREATE_METADATA_V3_DISCRIMINATOR)
+        
+        # Add name
+        data.extend(struct.pack('<I', len(name_bytes)))
+        data.extend(name_bytes)
+        
+        # Add symbol
+        data.extend(struct.pack('<I', len(symbol_bytes)))
+        data.extend(symbol_bytes)
+        
+        # Add URI
+        data.extend(struct.pack('<I', len(uri_bytes)))
+        data.extend(uri_bytes)
+        
+        # Add seller_fee_basis_points (0)
+        data.extend(struct.pack('<H', 0))
+        
+        # Add creators (None - represented as 0)
+        data.extend(struct.pack('<I', 0))
+        
+        # Add collection (None - represented as 0)
+        data.extend(struct.pack('<I', 0))
+        
+        # Add uses (None - represented as 0)
+        data.extend(struct.pack('<I', 0))
+        
+        # Add is_mutable (True/False - represented as 1/0)
+        data.extend(struct.pack('<B', 1 if is_mutable else 0))
+        
+        # Add collection_details (None - represented as 0)
+        data.extend(struct.pack('<I', 0))
 
-        from mpl_token_metadata.instructions import create_metadata_account_v3
-        from mpl_token_metadata.layout import DataV2
-
-        data = DataV2(
-            name=metadata.name,
-            symbol=metadata.symbol,
-            uri=metadata.uri,
-            seller_fee_basis_points=0,
-            creators=None,
-            collection=None,
-            uses=None,
-        )
-
-        return create_metadata_account_v3(
-            {
-                "metadata": metadata_pda,
-                "mint": mint,
-                "mint_authority": mint_authority,
-                "payer": payer,
-                "update_authority": update_authority,
-                "system_program": SYS_PROGRAM_ID,
-                "rent": SYSVAR_RENT_PUBKEY,
-            },
-            {"data": data, "is_mutable": is_mutable, "collection_details": None},
+        return TransactionInstruction(
+            program_id=METAPLEX_METADATA_PROGRAM_ID,
+            data=data,
+            keys=[
+                AccountMeta(pubkey=metadata_pda, is_signer=False, is_writable=True),
+                AccountMeta(pubkey=mint, is_signer=False, is_writable=False),
+                AccountMeta(pubkey=mint_authority, is_signer=True, is_writable=False),
+                AccountMeta(pubkey=payer, is_signer=True, is_writable=True),
+                AccountMeta(pubkey=update_authority, is_signer=False, is_writable=False),
+                AccountMeta(pubkey=SYS_PROGRAM_ID, is_signer=False, is_writable=False),
+                AccountMeta(pubkey=SYSVAR_RENT_PUBKEY, is_signer=False, is_writable=False),
+            ]
         )
     
     def _update_metadata_to_immutable(
@@ -611,7 +657,6 @@ class ProductionMemecoinLaunchpad:
         update_authority: PublicKey
     ):
         """Update metadata to immutable"""
-        from solana.transaction import TransactionInstruction, AccountMeta
         
         # Instruction discriminator for UpdateMetadataAccountV2
         data = bytes([15])  # UpdateMetadataAccountV2
