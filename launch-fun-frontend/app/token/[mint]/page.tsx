@@ -131,9 +131,11 @@ export default function TokenPage() {
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState<'success' | 'error'>('success')
-  const [slippage, setSlippage] = useState(0.01) // 1% default slippage
+  const [slippage, setSlippage] = useState(0.01)
   const [userTokenBalance, setUserTokenBalance] = useState<number | null>(null)
   const [userSolBalance, setUserSolBalance] = useState<number | null>(null)
+  const [trades, setTrades] = useState<any[]>([])
+  const [intelligence, setIntelligence] = useState<any>(null)
 
   // Fetch token data
   useEffect(() => {
@@ -224,6 +226,24 @@ export default function TokenPage() {
       }
     }
     fetchToken()
+  }, [mint])
+
+  // Fetch trades
+  useEffect(() => {
+    if (!mint) return
+    fetch(`/api/tokens/${mint}/trades`)
+      .then(r => r.json())
+      .then(d => { if (d.success) setTrades(d.trades || []) })
+      .catch(() => {})
+  }, [mint])
+
+  // Fetch AI intelligence
+  useEffect(() => {
+    if (!mint) return
+    fetch(`/api/analysis/${mint}`)
+      .then(r => r.json())
+      .then(d => { if (d.analysis) setIntelligence(d.analysis) })
+      .catch(() => {})
   }, [mint])
 
   // Fetch SOL price
@@ -581,6 +601,64 @@ export default function TokenPage() {
                   </div>
                 )}
 
+                {/* Social Links */}
+                {(token.twitter || token.telegram || token.website) && (
+                  <div className="mb-8 flex gap-3 flex-wrap">
+                    {token.twitter && (
+                      <a href={`https://twitter.com/${token.twitter}`} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/30 text-blue-400 rounded-xl text-sm hover:border-blue-400 transition-all">
+                        𝕏 @{token.twitter}
+                      </a>
+                    )}
+                    {token.telegram && (
+                      <a href={`https://t.me/${token.telegram}`} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 bg-sky-500/10 border border-sky-500/30 text-sky-400 rounded-xl text-sm hover:border-sky-400 transition-all">
+                        ✈️ Telegram
+                      </a>
+                    )}
+                    {token.website && (
+                      <a href={token.website} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 bg-gray-500/10 border border-gray-500/30 text-gray-400 rounded-xl text-sm hover:border-gray-400 transition-all">
+                        🌐 Website
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {/* AI Intelligence Card */}
+                {intelligence && (
+                  <div className="mb-8 bg-gradient-to-br from-purple-900/30 to-blue-900/30 border border-purple-500/30 rounded-2xl p-5">
+                    <div className="flex items-center gap-2 mb-4">
+                      <span className="text-lg">🤖</span>
+                      <h3 className="text-lg font-semibold text-white">AI Intelligence</h3>
+                      <span className="ml-auto text-xs text-purple-400 bg-purple-500/20 px-2 py-0.5 rounded-full">Claude Opus</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      {[
+                        { label: 'Narrative', value: intelligence.narrativeScore, color: 'yellow' },
+                        { label: 'Social', value: intelligence.socialScore, color: 'blue' },
+                        { label: 'Dev Cred', value: intelligence.devCredibility, color: 'green' },
+                        { label: 'Rug Risk', value: intelligence.rugRisk, color: intelligence.rugRisk > 60 ? 'red' : 'green', invert: true },
+                      ].map(({ label, value, color, invert }) => (
+                        <div key={label}>
+                          <div className="flex justify-between text-xs text-gray-400 mb-1">
+                            <span>{label}</span>
+                            <span className={`text-${color}-400`}>{value}/100</span>
+                          </div>
+                          <div className="w-full bg-gray-700 rounded-full h-1.5">
+                            <div className={`h-1.5 rounded-full bg-${color}-500 transition-all`} style={{ width: `${value}%` }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-sm text-gray-300 italic">&ldquo;{intelligence.summary}&rdquo;</p>
+                    <div className="mt-3 flex items-center justify-between">
+                      <span className="text-xs text-gray-500">Composite Score</span>
+                      <span className="text-lg font-bold text-yellow-400">{intelligence.compositeScore}/100</span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Bonding Curve Progress */}
                 <div className="mb-8">
                   <div className="flex justify-between items-center mb-2">
@@ -665,14 +743,13 @@ export default function TokenPage() {
               >
                 <h3 className="text-lg font-semibold text-white mb-4">Recent Trades</h3>
                 <div className="space-y-3">
-                  {/* Mock trade history - in production this would come from blockchain events */}
-                  {[
-                    { type: 'buy', wallet: '8xKp...3nFa', amount: 1250000, price: 0.00045, time: '2 min ago', txn: 'abc123' },
-                    { type: 'sell', wallet: '4mNx...9kLp', amount: 500000, price: 0.00044, time: '5 min ago', txn: 'def456' },
-                    { type: 'buy', wallet: '7pQr...2mXs', amount: 2000000, price: 0.00043, time: '12 min ago', txn: 'ghi789' },
-                    { type: 'buy', wallet: '3tAQ...gewi', amount: 750000, price: 0.00042, time: '18 min ago', txn: 'jkl012' },
-                    { type: 'sell', wallet: '9vLm...8nKj', amount: 300000, price: 0.00041, time: '25 min ago', txn: 'mno345' },
-                  ].map((trade, index) => (
+                  {trades.length === 0 ? (
+                    <p className="text-center text-gray-500 py-4">No trades yet — be the first to ape in 🦍</p>
+                  ) : [...trades].reverse().slice(0, 10).map((trade: any, index: number) => {
+                    const ago = Math.floor((Date.now() - trade.timestamp) / 60000)
+                    const timeStr = ago < 1 ? 'just now' : ago < 60 ? `${ago}m ago` : `${Math.floor(ago/60)}h ago`
+                    const shortWallet = `${trade.user.slice(0,4)}...${trade.user.slice(-4)}`
+                    return (
                     <div key={index} className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg hover:bg-gray-700/50 transition-colors">
                       <div className="flex items-center gap-3">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
@@ -686,44 +763,29 @@ export default function TokenPage() {
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <Link
-                              href={`/portfolio/${trade.wallet}`}
-                              className="text-yellow-400 hover:text-yellow-300 transition-colors font-mono text-sm"
-                            >
-                              {trade.wallet}
+                            <Link href={`/portfolio/${trade.user}`} className="text-yellow-400 hover:text-yellow-300 transition-colors font-mono text-sm">
+                              {shortWallet}
                             </Link>
-                            <span className={`text-xs font-medium ${
-                              trade.type === 'buy' ? 'text-green-400' : 'text-red-400'
-                            }`}>
+                            <span className={`text-xs font-medium ${trade.type === 'buy' ? 'text-green-400' : 'text-red-400'}`}>
                               {trade.type === 'buy' ? 'bought' : 'sold'}
                             </span>
-                            <span className="text-white font-medium">
-                              {(trade.amount / 1000000).toFixed(2)}M
-                            </span>
+                            <span className="text-white font-medium">{trade.tokens.toFixed(0)}</span>
                           </div>
                           <div className="flex items-center gap-2 text-xs text-gray-400">
-                            <span>{trade.time}</span>
+                            <span>{timeStr}</span>
                             <span>•</span>
                             <span>{trade.price.toFixed(8)} SOL</span>
-                            <span>•</span>
-                            <a
-                              href={`https://solscan.io/tx/${trade.txn}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-yellow-400 hover:text-yellow-300"
-                            >
-                              View TX
-                            </a>
                           </div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm text-white font-medium">
-                          ${((trade.amount / 1000000) * trade.price * solPrice).toFixed(2)}
+                        <p className={`text-sm font-medium ${trade.type === 'buy' ? 'text-green-400' : 'text-red-400'}`}>
+                          {trade.type === 'buy' ? '+' : '-'}{trade.amount.toFixed(4)} SOL
                         </p>
                       </div>
                     </div>
-                  ))}
+                  )})}
+
                 </div>
                 <div className="mt-4 text-center">
                   <p className="text-xs text-gray-500">

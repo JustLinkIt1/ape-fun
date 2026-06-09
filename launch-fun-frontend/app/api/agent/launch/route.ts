@@ -8,6 +8,7 @@ import { validateAgentKey, recordLaunch, RATE_LIMITS } from '@/lib/agentKeys'
 import { getOrCreateProfile, awardScore, saveProfile } from '@/lib/profileRegistry'
 import { buildScoreEvent } from '@/lib/apeScore'
 import { buildCommitment } from '@/lib/commitment'
+import { saveServerToken, initialBondingCurveFields } from '@/lib/serverTokenRegistry'
 
 // In-memory rate limit window (per key id) — swap for Redis in production
 const launchWindows: Record<string, number[]> = {}
@@ -67,12 +68,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // TODO(phase 7.1): call the Python launchpad to mint on-chain:
-    //   1. create SPL mint + Metaplex metadata (incl. social fields)
-    //   2. init bonding curve + FeeVault PDA with requestor = key.wallet
-    //   3. lock commitment vault if tier !== 'degen'
-    //   4. execute initialBuyLamports if provided
-    const mint = `PENDING_${Date.now()}` // placeholder until chain integration
+    // Agent-launched tokens get a simulated mint address for now.
+    // Real on-chain integration requires deploying the Anchor program.
+    const mint = `AGENT_${Date.now()}_${Math.random().toString(36).slice(2, 8).toUpperCase()}`
+    const totalSupply = body.totalSupply ?? 1_000_000_000
+    const decimals = 6
+
+    // Save token to registry so it appears on the platform
+    const bcFields = initialBondingCurveFields(totalSupply, decimals)
+    saveServerToken({
+      mint,
+      name: body.name,
+      symbol: body.symbol.toUpperCase(),
+      description: body.description ?? '',
+      imageUrl: body.imageUrl ?? '',
+      creator: body.creatorWallet,
+      requestorWallet: key.wallet,
+      totalSupply,
+      decimals,
+      salesTax: 1,
+      twitter: body.twitter,
+      telegram: body.telegram,
+      website: body.website,
+      commitmentTier: tier,
+      launchSource: 'agent',
+      createdAt: new Date().toISOString(),
+      ...bcFields,
+    })
 
     if (tier !== 'degen') {
       await buildCommitment(mint, tier, 0)
@@ -89,12 +111,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         mint,
-        txSignature: 'PENDING_CHAIN_INTEGRATION',
-        bondingCurveAddress: 'PENDING_CHAIN_INTEGRATION',
-        feeVaultAddress: 'PENDING_CHAIN_INTEGRATION',
+        txSignature: 'SIMULATED_ON_CHAIN_INTEGRATION',
+        bondingCurveAddress: 'PENDING',
+        feeVaultAddress: 'PENDING',
         creatorShare: 0.3,
         requestorShare: 0.2,
-        explorerUrl: `https://solscan.io/token/${mint}`,
+        explorerUrl: `${process.env.NEXT_PUBLIC_APP_URL || ''}/token/${mint}`,
+        platformUrl: `${process.env.NEXT_PUBLIC_APP_URL || ''}/token/${mint}`,
       },
       { status: 201 }
     )

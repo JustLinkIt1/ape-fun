@@ -155,6 +155,7 @@ export interface AgentLaunchRequest {
   telegram?: string
   website?: string
   initialBuyLamports?: number
+  totalSupply?: number
   creatorWallet: string
   requestorTag?: string
   commitmentTier?: CommitmentTier

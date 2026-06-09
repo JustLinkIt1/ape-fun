@@ -8,7 +8,6 @@ import { QuickBuyModal } from '@/components/QuickBuyModal'
 import { Token } from '@/types'
 import { motion } from 'framer-motion'
 import { TrendingUp, Rocket, Zap, Trophy } from 'lucide-react'
-import { getAllPlatformTokens } from '@/lib/tokenRegistry'
 
 export default function HomePage() {
   const [selectedToken, setSelectedToken] = useState<Token | null>(null)
@@ -17,34 +16,56 @@ export default function HomePage() {
   const [tagline, setTagline] = useState(
     'The fastest way to launch and trade memecoins on Solana.'
   )
+  const [stats, setStats] = useState({ totalVolume: '0', creators: '0', gradRate: '0%' })
 
   useEffect(() => {
-    // Load platform tokens
-    const platformTokens = getAllPlatformTokens()
-    
-    // Map platform tokens to Token format
-    const mappedPlatformTokens: Token[] = platformTokens.map(pt => ({
-      address: pt.mint, // Use mint as address for compatibility
-      mint: pt.mint,
-      name: pt.name,
-      symbol: pt.symbol,
-      price: pt.price,
-      priceChange24h: pt.priceChange24h,
-      marketCap: pt.marketCap,
-      volume24h: pt.volume24h,
-      holders: pt.holders,
-      imageUrl: pt.imageUrl,
-      bondingCurveProgress: pt.bondingCurveProgress,
-      salesTax: pt.salesTax,
-      creator: pt.creator
-    }))
-    
-    setTokens(mappedPlatformTokens)
-    setIsLoading(false)
+    async function loadTokens() {
+      try {
+        const res = await fetch('/api/tokens')
+        const data = await res.json()
+        if (data.success && Array.isArray(data.tokens)) {
+          const mapped: Token[] = data.tokens.map((t: any) => ({
+            address: t.mint,
+            mint: t.mint,
+            name: t.name,
+            symbol: t.symbol,
+            description: t.description,
+            price: t.price,
+            priceChange24h: t.priceChange24h ?? 0,
+            marketCap: t.marketCap ?? 0,
+            volume24h: t.volume24h ?? 0,
+            holders: t.holders ?? 0,
+            imageUrl: t.imageUrl,
+            bondingCurveProgress: t.bondingCurveProgress ?? 0,
+            salesTax: t.salesTax ?? 1,
+            creator: t.creator,
+            twitter: t.twitter,
+            telegram: t.telegram,
+            website: t.website,
+            commitmentTier: t.commitmentTier,
+            graduated: t.graduated ?? false,
+          }))
+          setTokens(mapped)
+          const vol = mapped.reduce((s, t) => s + (t.volume24h || 0), 0)
+          const creators = new Set(mapped.map(t => t.creator)).size
+          const graduated = mapped.filter((t: any) => t.graduated).length
+          setStats({
+            totalVolume: vol > 1000 ? `$${(vol / 1000).toFixed(1)}K` : `$${vol.toFixed(0)}`,
+            creators: creators.toString(),
+            gradRate: mapped.length ? `${Math.round((graduated / mapped.length) * 100)}%` : '0%',
+          })
+        }
+      } catch (err) {
+        console.error('Failed to load tokens:', err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadTokens()
   }, [])
 
   useEffect(() => {
-    generateTagline().then(setTagline)
+    generateTagline().then(setTagline).catch(() => {})
   }, [])
 
   return (
@@ -67,7 +88,7 @@ export default function HomePage() {
             transition={{ duration: 0.8 }}
           >
             <h1 className="text-6xl md:text-8xl font-bold mb-6 bg-gradient-to-r from-yellow-500 via-yellow-400 to-white bg-clip-text text-transparent animate-gradient">
-              Ape Fun
+              ApeStation
             </h1>
             <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto">
               {tagline}
@@ -88,18 +109,18 @@ export default function HomePage() {
             </div>
             <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700">
               <Rocket className="w-8 h-8 text-yellow-400 mb-2 mx-auto" />
-              <p className="text-3xl font-bold text-white">$5.2M</p>
+              <p className="text-3xl font-bold text-white">{stats.totalVolume}</p>
               <p className="text-gray-400">Total Volume</p>
             </div>
             <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700">
               <Zap className="w-8 h-8 text-yellow-400 mb-2 mx-auto" />
-              <p className="text-3xl font-bold text-white">12.5K</p>
-              <p className="text-gray-400">Active Traders</p>
+              <p className="text-3xl font-bold text-white">{stats.creators}</p>
+              <p className="text-gray-400">Creators</p>
             </div>
             <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700">
               <Trophy className="w-8 h-8 text-green-400 mb-2 mx-auto" />
-              <p className="text-3xl font-bold text-white">89%</p>
-              <p className="text-gray-400">Success Rate</p>
+              <p className="text-3xl font-bold text-white">{stats.gradRate}</p>
+              <p className="text-gray-400">Grad Rate</p>
             </div>
           </motion.div>
         </div>
@@ -113,8 +134,13 @@ export default function HomePage() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.4 }}
           >
-            <h2 className="text-3xl font-bold text-white mb-8">🔥 Trending Tokens</h2>
-            
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-3xl font-bold text-white">🔥 Trending Tokens</h2>
+              <a href="/create" className="px-4 py-2 bg-yellow-500/20 border border-yellow-500/50 text-yellow-400 rounded-xl text-sm hover:border-yellow-400 transition-all">
+                + Launch Token
+              </a>
+            </div>
+
             {isLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[...Array(6)].map((_, i) => (
@@ -132,6 +158,15 @@ export default function HomePage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            ) : tokens.length === 0 ? (
+              <div className="text-center py-24">
+                <p className="text-6xl mb-4">🦍</p>
+                <p className="text-2xl text-gray-400 mb-2">No tokens yet</p>
+                <p className="text-gray-500 mb-8">Be the first to launch on ApeStation</p>
+                <a href="/create" className="px-6 py-3 bg-gradient-to-r from-yellow-600 to-yellow-400 text-black font-bold rounded-xl hover:scale-105 transition-transform">
+                  Launch First Token
+                </a>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

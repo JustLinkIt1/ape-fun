@@ -10,7 +10,7 @@ import {
   AuthorityType
 } from '@solana/spl-token'
 import { savePlatformToken } from '@/lib/tokenRegistry'
-import { saveServerToken } from '@/lib/serverTokenRegistry'
+import { saveServerToken, initialBondingCurveFields } from '@/lib/serverTokenRegistry'
 
 // Platform configuration
 const PLATFORM_CONFIG = {
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
   try {
     console.log('[Token Creation] Received request');
     const body = await request.json()
-    let { name, symbol, description, totalSupply, decimals, imageUrl, creator } = body
+    let { name, symbol, description, totalSupply, decimals, imageUrl, creator, twitter, telegram, website, commitmentTier, launchSource } = body
     console.log('[Token Creation] Parsed body:', body);
 
     // Validate input
@@ -433,6 +433,7 @@ export async function POST(request: NextRequest) {
     transaction.partialSign(mintKeypair)
     
     // Save token to both client and server registries
+    const bcFields = initialBondingCurveFields(totalSupply, decimals)
     const tokenData = {
       mint: mint.toBase58(),
       name,
@@ -443,13 +444,15 @@ export async function POST(request: NextRequest) {
       imageUrl: finalImageUrl || '',
       creator: creator,
       createdAt: new Date().toISOString(),
-      price: 0.000001, // Initial price
-      priceChange24h: 0,
-      marketCap: 1000, // Initial market cap
-      volume24h: 0,
-      holders: 1,
-      bondingCurveProgress: 0,
-      salesTax: PLATFORM_CONFIG.salesTax
+      salesTax: PLATFORM_CONFIG.salesTax,
+      // Social metadata
+      twitter: twitter || undefined,
+      telegram: telegram || undefined,
+      website: website || undefined,
+      commitmentTier: commitmentTier || 'degen',
+      launchSource: launchSource || 'web',
+      // Bonding curve initial state
+      ...bcFields,
     }
     
     // Save to server-side storage

@@ -32,29 +32,27 @@ export const Header: FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row sm:justify-between items-center h-auto sm:h-20 space-y-2 sm:space-y-0">
           <Link href="/">
-            <motion.div
-              className="flex items-center cursor-pointer"
-              whileHover={{ scale: 1.05 }}
-            >
-              <img
-                src="/launchlogo.png"
-                alt="Ape Fun Logo"
-                className="w-20 h-20 mr-3"
-              />
-              <span className="ml-2 px-2 py-1 text-xs bg-gradient-to-r from-yellow-600 to-yellow-400 text-black rounded-full">
+            <motion.div className="flex items-center cursor-pointer gap-3" whileHover={{ scale: 1.03 }}>
+              <span className="text-2xl font-black bg-gradient-to-r from-yellow-400 to-yellow-200 bg-clip-text text-transparent">
+                🦍 ApeStation
+              </span>
+              <span className="px-2 py-0.5 text-xs bg-gradient-to-r from-yellow-600 to-yellow-400 text-black rounded-full font-bold">
                 BETA
               </span>
             </motion.div>
           </Link>
 
-          <nav className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4 relative">
+          <nav className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-3 relative">
+            <Link href="/leaderboard" className="text-gray-400 hover:text-yellow-400 text-sm font-medium transition-colors px-2 py-1">
+              🏆 Leaderboard
+            </Link>
             <motion.a
               href="/create"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-yellow-600/20 to-yellow-400/20 border border-yellow-500/50 text-yellow-400 rounded-xl font-medium hover:border-yellow-400 transition-all"
             >
-              🚀 Create Token
+              🚀 Launch Token
             </motion.a>
 
             {/* Wallet Button */}

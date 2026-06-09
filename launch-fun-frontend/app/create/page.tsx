@@ -20,7 +20,10 @@ export default function CreateToken() {
     symbol: '',
     description: '',
     totalSupply: 1000000000,
-    decimals: 9
+    decimals: 9,
+    twitter: '',
+    telegram: '',
+    website: '',
   })
   
   const [imageFile, setImageFile] = useState<File | null>(null)
@@ -285,7 +288,10 @@ export default function CreateToken() {
           symbol: '',
           description: '',
           totalSupply: 1000000000,
-          decimals: 9
+          decimals: 9,
+          twitter: '',
+          telegram: '',
+          website: '',
         })
         removeImage()
       }
@@ -443,6 +449,44 @@ export default function CreateToken() {
                   className="w-full px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 transition-colors"
                   min="1"
                 />
+              </div>
+
+              {/* Social Links */}
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-300">Social Links <span className="text-gray-500">(optional)</span></label>
+                <div className="flex items-center gap-3">
+                  <span className="text-gray-400 w-8 text-center">𝕏</span>
+                  <input
+                    type="text"
+                    name="twitter"
+                    value={formData.twitter}
+                    onChange={handleInputChange}
+                    placeholder="Twitter handle (no @)"
+                    className="flex-1 px-4 py-2.5 bg-gray-900/50 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 transition-colors text-sm"
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-gray-400 w-8 text-center">✈️</span>
+                  <input
+                    type="text"
+                    name="telegram"
+                    value={formData.telegram}
+                    onChange={handleInputChange}
+                    placeholder="Telegram slug"
+                    className="flex-1 px-4 py-2.5 bg-gray-900/50 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 transition-colors text-sm"
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-gray-400 w-8 text-center">🌐</span>
+                  <input
+                    type="text"
+                    name="website"
+                    value={formData.website}
+                    onChange={handleInputChange}
+                    placeholder="https://yourtoken.xyz"
+                    className="flex-1 px-4 py-2.5 bg-gray-900/50 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 transition-colors text-sm"
+                  />
+                </div>
               </div>
 
 
