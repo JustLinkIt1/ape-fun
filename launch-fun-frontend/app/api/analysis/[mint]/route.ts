@@ -9,9 +9,9 @@ import { fetchSocialMetrics } from '@/lib/socialMultiplier'
 
 export async function GET(
   request: NextRequest,
-  context: { params: { mint: string } }
+  context: { params: Promise<{ mint: string }> }
 ) {
-  const { mint } = context.params
+  const { mint } = await context.params
   const analysis = getAnalysis(mint)
   if (!analysis) {
     return NextResponse.json({ error: 'No analysis yet' }, { status: 404 })
@@ -21,10 +21,10 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  context: { params: { mint: string } }
+  context: { params: Promise<{ mint: string }> }
 ) {
   try {
-    const { mint } = context.params
+    const { mint } = await context.params
     const stored = getServerToken(mint)
     if (!stored) {
       return NextResponse.json({ error: 'Token not found' }, { status: 404 })

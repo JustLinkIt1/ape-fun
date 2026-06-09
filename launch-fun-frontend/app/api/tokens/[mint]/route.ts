@@ -3,12 +3,10 @@ import { getServerToken, getServerTokens } from '@/lib/serverTokenRegistry'
 
 export async function GET(
   request: NextRequest,
-  context: { params: { mint: string } }
+  context: { params: Promise<{ mint: string }> }
 ) {
   try {
-    // Await params if necessary (for dynamic API routes in Next.js app directory)
-    const { params } = context;
-    const mint = typeof params.mint === 'string' ? params.mint : await params.mint;
+    const { mint } = await context.params;
     // Get token from server registry
     const token = getServerToken(mint)
     

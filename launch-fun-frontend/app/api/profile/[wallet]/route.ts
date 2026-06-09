@@ -6,9 +6,10 @@ import { getOrCreateProfile, getProfile, saveProfile } from '@/lib/profileRegist
 
 export async function GET(
   request: NextRequest,
-  context: { params: { wallet: string } }
+  context: { params: Promise<{ wallet: string }> }
 ) {
-  const profile = getProfile(context.params.wallet)
+  const { wallet } = await context.params
+  const profile = getProfile(wallet)
   if (!profile) {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
   }
@@ -19,10 +20,10 @@ export async function GET(
 // TODO(phase 1.6): verify a signed message from the follower wallet
 export async function POST(
   request: NextRequest,
-  context: { params: { wallet: string } }
+  context: { params: Promise<{ wallet: string }> }
 ) {
   try {
-    const target = context.params.wallet
+    const { wallet: target } = await context.params
     const { follower, action } = await request.json()
     if (!follower || !['follow', 'unfollow'].includes(action)) {
       return NextResponse.json({ error: 'follower and action required' }, { status: 400 })

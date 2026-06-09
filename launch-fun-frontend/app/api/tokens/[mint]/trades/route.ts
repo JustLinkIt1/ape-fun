@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getTradesForMint } from '@/lib/tradeRegistry'
 
-export async function GET(request: NextRequest, context: { params: { mint: string } }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ mint: string }> }) {
   try {
-    const { params } = context
-    const mint = typeof params.mint === 'string' ? params.mint : await params.mint
+    const { mint } = await context.params
     const trades = getTradesForMint(mint)
     return NextResponse.json({ success: true, trades })
   } catch (error: any) {

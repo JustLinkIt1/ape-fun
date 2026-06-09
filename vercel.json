@@ -1,0 +1,8 @@
+{
+  "buildCommand": "cd launch-fun-frontend && npm install --legacy-peer-deps && npm run build",
+  "outputDirectory": "launch-fun-frontend/.next",
+  "framework": "nextjs",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/" }
+  ]
+}

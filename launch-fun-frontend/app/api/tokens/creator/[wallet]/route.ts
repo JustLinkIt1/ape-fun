@@ -3,10 +3,10 @@ import { getServerTokensByCreator } from '@/lib/serverTokenRegistry'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { wallet: string } }
+  context: { params: Promise<{ wallet: string }> }
 ) {
   try {
-    const wallet = params.wallet
+    const { wallet } = await context.params
     
     if (!wallet) {
       return NextResponse.json(
