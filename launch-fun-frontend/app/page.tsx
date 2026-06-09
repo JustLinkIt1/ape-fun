@@ -35,7 +35,8 @@ export default function HomePage() {
       holders: pt.holders,
       imageUrl: pt.imageUrl,
       bondingCurveProgress: pt.bondingCurveProgress,
-      salesTax: pt.salesTax
+      salesTax: pt.salesTax,
+      creator: pt.creator
     }))
     
     setTokens(mappedPlatformTokens)

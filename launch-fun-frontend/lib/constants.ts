@@ -15,11 +15,28 @@ export const DEVNET_RPC_ENDPOINTS = [
 // Platform configuration
 export const PLATFORM_CONFIG = {
   taxWallet: '3tAQBPnSxMZ7CAvgib29hWFiebRFqupEHLZQENSogewi',
-  salesTax: 3, // 3% trading fee in SOL
-  launchFee: 0, // 0 SOL launch fee for testing
-  bondingTarget: 69000, // Bond to Raydium at 69k market cap
+  salesTax: 1, // 1% trading fee, split per FEE_SPLIT below
+  launchFee: 0.02, // SOL — flat creation fee, 100% to treasury
+  bondingTarget: 69000, // Bond to Raydium at 69k market cap (before social multiplier)
   network: 'mainnet-beta' // 'mainnet-beta' or 'devnet'
 }
+
+// Trade fee distribution (bonding curve phase)
+export const FEE_SPLIT = {
+  treasury: 0.5,
+  creator: 0.3,
+  requestor: 0.2, // agent/referrer that initiated the launch; creator if self-launched
+}
+
+// Raydium LP fee distribution (post-graduation, of the 0.25% LP fee)
+export const LP_FEE_SPLIT = {
+  treasury: 0.6,
+  creator: 0.28,
+  requestor: 0.12,
+}
+
+// Share of all platform fees pooled into the seasonal treasury
+export const SEASON_TREASURY_RATIO = 0.1
 
 // Helper function to get working RPC connection
 import { Connection } from '@solana/web3.js'

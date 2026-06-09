@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { createChart, IChartApi, LineData, LineSeriesOptions, ColorType } from 'lightweight-charts'
+import { createChart, IChartApi, LineData, LineSeries, ColorType } from 'lightweight-charts'
 
 interface TokenChartProps {
   mint: string
@@ -33,9 +33,9 @@ export default function TokenChart({ mint }: TokenChartProps) {
       })
       chartInstance.current = chart
       // Price line
-      priceSeries = chart.addSeries({ type: 'line', color: '#facc15', lineWidth: 2 })
+      priceSeries = chart.addSeries(LineSeries, { color: '#facc15', lineWidth: 2 })
       // Supply line
-      supplySeries = chart.addSeries({ type: 'line', color: '#38bdf8', lineWidth: 2 })
+      supplySeries = chart.addSeries(LineSeries, { color: '#38bdf8', lineWidth: 2 })
       // Format data
       const priceData: LineData[] = chartData.map((d: any) => ({ time: Math.floor(d.time / 1000), value: d.price }))
       const supplyData: LineData[] = chartData.map((d: any) => ({ time: Math.floor(d.time / 1000), value: d.supply }))
