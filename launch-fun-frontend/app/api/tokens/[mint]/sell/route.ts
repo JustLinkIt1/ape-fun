@@ -23,8 +23,8 @@ function getConnection() {
   return new Connection(endpoint, 'confirmed')
 }
 
-export async function POST(request: NextRequest, context: any) {
-  const { params } = context as { params: { mint: string } }
+export async function POST(request: NextRequest, context: { params: Promise<{ mint: string }> }) {
+  const params = await context.params
   try {
     const body = await request.json()
     const { amount, slippage = 100, seller } = body  // amount in tokens
